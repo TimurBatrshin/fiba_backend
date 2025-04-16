@@ -13,9 +13,9 @@
     <version>1.0.0</version>
     <name>FIBA API</name>
     <description>Backend API for FIBA basketball tournament management application</description>
-    
+
     <properties>
-        <java.version>21</java.version>
+        <java.version>19</java.version>
         <springdoc-openapi.version>2.3.0</springdoc-openapi.version>
     </properties>
     
