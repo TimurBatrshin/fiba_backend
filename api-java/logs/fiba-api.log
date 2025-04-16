@@ -52600,3 +52600,6 @@ Caused by: java.net.SocketTimeoutException: Read timed out
 2025-04-16T22:12:37.181+03:00  INFO 23096 --- [main] com.fiba.api.ApiApplication              : Started ApiApplication in 7.364 seconds (process running for 7.967)
 2025-04-16T22:12:37.188+03:00  INFO 23096 --- [main] c.fiba.api.service.FileStorageService    : Инициализация FileStorageService...
 2025-04-16T22:12:37.188+03:00  INFO 23096 --- [main] c.fiba.api.service.FileStorageService    : FileStorageService инициализирован успешно
+2025-04-16T22:22:54.727+03:00  INFO 23096 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-04-16T22:22:54.728+03:00  INFO 23096 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-04-16T22:22:54.823+03:00  INFO 23096 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
