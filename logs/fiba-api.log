@@ -52603,3 +52603,34 @@ Caused by: java.net.SocketTimeoutException: Read timed out
 2025-04-16T22:22:54.727+03:00  INFO 23096 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
 2025-04-16T22:22:54.728+03:00  INFO 23096 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
 2025-04-16T22:22:54.823+03:00  INFO 23096 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2025-04-16T22:47:15.475+03:00  INFO 15324 --- [main] com.fiba.api.ApiApplication              : Starting ApiApplication using Java 19.0.2 with PID 15324 (D:\fiba_backend\target\classes started by Timur in D:\fiba_backend)
+2025-04-16T22:47:15.598+03:00  INFO 15324 --- [main] com.fiba.api.ApiApplication              : No active profile set, falling back to 1 default profile: "default"
+2025-04-16T22:47:16.348+03:00  INFO 15324 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-04-16T22:47:16.392+03:00  INFO 15324 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 39 ms. Found 6 JPA repository interfaces.
+2025-04-16T22:47:17.359+03:00  INFO 15324 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-04-16T22:47:17.378+03:00  INFO 15324 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-04-16T22:47:17.378+03:00  INFO 15324 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2025-04-16T22:47:17.447+03:00  INFO 15324 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-04-16T22:47:17.448+03:00  INFO 15324 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1772 ms
+2025-04-16T22:47:17.706+03:00  INFO 15324 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-04-16T22:47:17.772+03:00  INFO 15324 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2025-04-16T22:47:17.809+03:00  INFO 15324 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-04-16T22:47:18.046+03:00  INFO 15324 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-04-16T22:47:18.077+03:00  INFO 15324 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-04-16T22:47:18.532+03:00  INFO 15324 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@683ed81b
+2025-04-16T22:47:18.533+03:00  INFO 15324 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-04-16T22:47:18.582+03:00  WARN 15324 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-04-16T22:47:18.651+03:00 DEBUG 15324 --- [main] o.h.t.d.sql.spi.DdlTypeRegistry          : addDescriptor(2003, org.hibernate.type.descriptor.sql.internal.ArrayDdlTypeImpl@3a5e4f32) replaced previous registration(org.hibernate.type.descriptor.sql.internal.ArrayDdlTypeImpl@2b0494a8)
+2025-04-16T22:47:18.652+03:00 DEBUG 15324 --- [main] o.h.t.d.sql.spi.DdlTypeRegistry          : addDescriptor(6, org.hibernate.type.descriptor.sql.internal.CapacityDependentDdlType@17c34e62) replaced previous registration(org.hibernate.type.descriptor.sql.internal.DdlTypeImpl@239d73ff)
+2025-04-16T22:47:19.681+03:00  INFO 15324 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-04-16T22:47:20.581+03:00  INFO 15324 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-04-16T22:47:20.881+03:00  INFO 15324 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-04-16T22:47:22.181+03:00  INFO 15324 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoint(s) beneath base path '/actuator'
+2025-04-16T22:47:22.254+03:00  INFO 15324 --- [main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@287cfa9c, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@10decc1e, org.springframework.security.web.context.SecurityContextHolderFilter@5581f3e3, org.springframework.security.web.header.HeaderWriterFilter@580882fb, org.springframework.web.filter.CorsFilter@f4dcd0d, org.springframework.security.web.authentication.logout.LogoutFilter@2d1206b, com.fiba.api.security.JwtAuthenticationFilter@221ec884, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@33d2e82, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@34a7decd, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@1135efad, org.springframework.security.web.session.SessionManagementFilter@71ebb8e1, org.springframework.security.web.access.ExceptionTranslationFilter@14e9458a, org.springframework.security.web.access.intercept.AuthorizationFilter@6cdea0fe]
+2025-04-16T22:47:22.808+03:00  INFO 15324 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-04-16T22:47:22.822+03:00  INFO 15324 --- [main] com.fiba.api.ApiApplication              : Started ApiApplication in 7.914 seconds (process running for 9.78)
+2025-04-16T22:47:22.828+03:00  INFO 15324 --- [main] c.fiba.api.service.FileStorageService    : Инициализация FileStorageService...
+2025-04-16T22:47:22.829+03:00  INFO 15324 --- [main] c.fiba.api.service.FileStorageService    : FileStorageService инициализирован успешно
+2025-04-16T22:47:29.824+03:00  INFO 15324 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-04-16T22:47:29.826+03:00  INFO 15324 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-04-16T22:47:29.930+03:00  INFO 15324 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
