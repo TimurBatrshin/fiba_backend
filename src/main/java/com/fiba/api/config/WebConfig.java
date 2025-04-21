@@ -22,9 +22,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOrigins("*")  // Разрешаем запросы со всех доменов
+            .allowedOrigins("https://dev.bro-js.ru")  // Разрешаем запросы только с конкретного домена
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             .allowedHeaders("Origin", "Content-Type", "Accept", "Authorization")
+            .allowCredentials(true)  // Разрешаем передачу учетных данных
             .maxAge(3600);
     }
 } 

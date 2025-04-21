@@ -101,9 +101,10 @@ public class ProxyController {
             }
             
             // Разрешаем доступ всем источникам
-            responseHeaders.add("Access-Control-Allow-Origin", "*");
+            responseHeaders.add("Access-Control-Allow-Origin", "https://dev.bro-js.ru");
             responseHeaders.add("Access-Control-Allow-Methods", "GET, OPTIONS");
-            responseHeaders.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept");
+            responseHeaders.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
+            responseHeaders.add("Access-Control-Allow-Credentials", "true");
             
             // Возвращаем ответ с новыми заголовками
             return new ResponseEntity<>(

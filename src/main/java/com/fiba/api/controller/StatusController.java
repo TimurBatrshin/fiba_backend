@@ -8,15 +8,26 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Контроллер для проверки статуса API и CORS
+ */
 @RestController
-@RequestMapping("/api/status")
+@RequestMapping("/api")
 public class StatusController {
 
-    @GetMapping
-    public ResponseEntity<Map<String, String>> getStatus() {
-        Map<String, String> status = new HashMap<>();
-        status.put("status", "UP");
-        status.put("message", "Сервер доступен");
+    /**
+     * Проверка статуса API
+     * 
+     * @return Информация о статусе API
+     */
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("status", "ok");
+        status.put("message", "API работает нормально");
+        status.put("timestamp", System.currentTimeMillis());
+        status.put("cors", "Настроен для домена dev.bro-js.ru");
+        
         return ResponseEntity.ok(status);
     }
 } 
