@@ -71,12 +71,6 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Java Mail для отправки email -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
-        
         <!-- Для загрузки файлов -->
         <dependency>
             <groupId>commons-fileupload</groupId>
