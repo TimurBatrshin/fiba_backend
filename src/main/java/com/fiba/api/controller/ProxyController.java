@@ -22,7 +22,7 @@ import java.util.Base64;
 import java.util.Enumeration;
 
 /**
- * Контроллер для проксирования запросов к внешним ресурсам, решает проблемы CORS
+ * Контроллер для проксирования запросов к внешним ресурсам
  */
 @RestController
 @RequestMapping("/api/proxy")
@@ -64,21 +64,10 @@ public class ProxyController {
         // Проверяем, является ли файл JavaScript-файлом
         boolean isJsFile = fullPath.endsWith(".js");
         
-        // Копируем заголовки из оригинального запроса
+        // Создаем заголовки для запроса
         HttpHeaders headers = new HttpHeaders();
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String headerName = headerNames.nextElement();
-            if (headerName.equalsIgnoreCase("host")) {
-                // Пропускаем заголовок Host, так как он будет установлен автоматически
-                continue;
-            }
-            String headerValue = request.getHeader(headerName);
-            headers.add(headerName, headerValue);
-        }
-        
-        // Добавляем заголовок для указания, что мы принимаем любой контент
         headers.add("Accept", "*/*");
+        headers.add("User-Agent", "Spring RestTemplate");
         
         // Если включена аутентификация, добавляем заголовок Basic Authentication
         if (authEnabled && username != null && !username.isEmpty()) {
@@ -100,14 +89,28 @@ public class ProxyController {
                 String.class
             );
             
-            // Если файл JS, устанавливаем правильный Content-Type
-            if (isJsFile) {
-                return ResponseEntity.status(response.getStatusCode())
-                    .contentType(MediaType.parseMediaType("application/javascript"))
-                    .body(response.getBody());
+            // Создаем новые заголовки ответа
+            HttpHeaders responseHeaders = new HttpHeaders();
+            
+            // Копируем важные заголовки из ответа
+            if (response.getHeaders().getContentType() != null) {
+                responseHeaders.setContentType(response.getHeaders().getContentType());
+            } else if (isJsFile) {
+                // Если файл JS, устанавливаем правильный Content-Type
+                responseHeaders.setContentType(MediaType.parseMediaType("application/javascript"));
             }
             
-            return response;
+            // Разрешаем доступ всем источникам
+            responseHeaders.add("Access-Control-Allow-Origin", "*");
+            responseHeaders.add("Access-Control-Allow-Methods", "GET, OPTIONS");
+            responseHeaders.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept");
+            
+            // Возвращаем ответ с новыми заголовками
+            return new ResponseEntity<>(
+                response.getBody(),
+                responseHeaders,
+                response.getStatusCode()
+            );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body("Error proxying request to " + url + ": " + e.getMessage());
