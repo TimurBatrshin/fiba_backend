@@ -1,15 +1,20 @@
 package com.fiba.api.service;
 
+import com.fiba.api.dto.TournamentRequest;
 import com.fiba.api.exception.ResourceNotFoundException;
 import com.fiba.api.model.Tournament;
+import com.fiba.api.model.TournamentStatus;
 import com.fiba.api.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Сервис для работы с турнирами
+ */
 @Service
 @RequiredArgsConstructor
 public class TournamentService {
@@ -17,124 +22,134 @@ public class TournamentService {
     private final TournamentRepository tournamentRepository;
 
     /**
-     * Получить все турниры
+     * Получение всех турниров
+     * 
+     * @return список всех турниров
      */
-    @Transactional(readOnly = true)
     public List<Tournament> getAllTournaments() {
         return tournamentRepository.findAll();
     }
 
     /**
-     * Получить турнир по ID с загрузкой регистраций команд
+     * Получение турнира по идентификатору
+     * 
+     * @param id идентификатор турнира
+     * @return турнир
      * @throws ResourceNotFoundException если турнир не найден
      */
-    @Transactional(readOnly = true)
     public Tournament getTournamentById(Long id) {
-        return tournamentRepository.findByIdWithRegistrations(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Турнир", "id", id));
+        return tournamentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tournament not found with id: " + id));
     }
 
     /**
-     * Получить турниры по статусу
-     */
-    @Transactional(readOnly = true)
-    public List<Tournament> getTournamentsByStatus(String status) {
-        return tournamentRepository.findByStatus(status);
-    }
-
-    /**
-     * Получить предстоящие турниры (дата в будущем)
-     */
-    @Transactional(readOnly = true)
-    public List<Tournament> getUpcomingTournaments() {
-        return tournamentRepository.findByDateAfter(LocalDateTime.now());
-    }
-
-    /**
-     * Получить прошедшие турниры (дата в прошлом)
-     */
-    @Transactional(readOnly = true)
-    public List<Tournament> getPastTournaments() {
-        return tournamentRepository.findByDateBefore(LocalDateTime.now());
-    }
-
-    /**
-     * Поиск турниров по названию
-     */
-    @Transactional(readOnly = true)
-    public List<Tournament> searchTournaments(String searchTerm) {
-        return tournamentRepository.searchByTitle(searchTerm);
-    }
-
-    /**
-     * Получить турниры по местоположению
-     */
-    @Transactional(readOnly = true)
-    public List<Tournament> getTournamentsByLocation(String location) {
-        return tournamentRepository.findByLocationContaining(location);
-    }
-
-    /**
-     * Получить турниры по уровню
-     */
-    @Transactional(readOnly = true)
-    public List<Tournament> getTournamentsByLevel(String level) {
-        return tournamentRepository.findByLevel(level);
-    }
-
-    /**
-     * Создать новый турнир
+     * Создание нового турнира
+     * 
+     * @param request данные турнира
+     * @return созданный турнир
      */
     @Transactional
-    public Tournament createTournament(Tournament tournament) {
+    public Tournament createTournament(TournamentRequest request) {
+        Tournament tournament = Tournament.builder()
+                .name(request.getName())
+                .date(request.getDate())
+                .startTime(request.getStartTime())
+                .location(request.getLocation())
+                .description(request.getDescription())
+                .status(request.getStatus())
+                .maxTeams(request.getMaxTeams())
+                .entryFee(request.getEntryFee())
+                .prizePool(request.getPrizePool())
+                .isBusinessTournament(request.getIsBusinessTournament())
+                .sponsorName(request.getSponsorName())
+                .sponsorLogo(request.getSponsorLogo())
+                .rules(request.getRules())
+                .registrationOpen(request.getRegistrationOpen())
+                .build();
+        
         return tournamentRepository.save(tournament);
     }
 
     /**
-     * Обновить существующий турнир
+     * Обновление турнира
+     * 
+     * @param id идентификатор турнира
+     * @param request данные для обновления
+     * @return обновленный турнир
      * @throws ResourceNotFoundException если турнир не найден
      */
     @Transactional
-    public Tournament updateTournament(Tournament tournament) {
-        return tournamentRepository.findById(tournament.getId())
-                .map(existingTournament -> {
-                    // Обновляем поля, если они не null
-                    if (tournament.getTitle() != null) {
-                        existingTournament.setTitle(tournament.getTitle());
-                    }
-                    
-                    if (tournament.getDate() != null) {
-                        existingTournament.setDate(tournament.getDate());
-                    }
-                    
-                    if (tournament.getLocation() != null) {
-                        existingTournament.setLocation(tournament.getLocation());
-                    }
-                    
-                    if (tournament.getLevel() != null) {
-                        existingTournament.setLevel(tournament.getLevel());
-                    }
-                    
-                    if (tournament.getPrizePool() != null) {
-                        existingTournament.setPrizePool(tournament.getPrizePool());
-                    }
-                    
-                    if (tournament.getStatus() != null) {
-                        existingTournament.setStatus(tournament.getStatus());
-                    }
-                    
-                    return tournamentRepository.save(existingTournament);
-                })
-                .orElseThrow(() -> new ResourceNotFoundException("Турнир", "id", tournament.getId()));
+    public Tournament updateTournament(Long id, TournamentRequest request) {
+        Tournament tournament = getTournamentById(id);
+        
+        tournament.setName(request.getName());
+        tournament.setDate(request.getDate());
+        tournament.setStartTime(request.getStartTime());
+        tournament.setLocation(request.getLocation());
+        tournament.setDescription(request.getDescription());
+        tournament.setStatus(request.getStatus());
+        tournament.setMaxTeams(request.getMaxTeams());
+        tournament.setEntryFee(request.getEntryFee());
+        tournament.setPrizePool(request.getPrizePool());
+        tournament.setIsBusinessTournament(request.getIsBusinessTournament());
+        tournament.setSponsorName(request.getSponsorName());
+        tournament.setSponsorLogo(request.getSponsorLogo());
+        tournament.setRules(request.getRules());
+        tournament.setRegistrationOpen(request.getRegistrationOpen());
+        
+        return tournamentRepository.save(tournament);
     }
 
     /**
-     * Удалить турнир
+     * Удаление турнира
+     * 
+     * @param id идентификатор турнира
      * @throws ResourceNotFoundException если турнир не найден
      */
     @Transactional
     public void deleteTournament(Long id) {
-        Tournament tournament = getTournamentById(id);
-        tournamentRepository.delete(tournament);
+        if (!tournamentRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Tournament not found with id: " + id);
+        }
+        tournamentRepository.deleteById(id);
+    }
+
+    /**
+     * Получение предстоящих турниров
+     * 
+     * @return список предстоящих турниров
+     */
+    public List<Tournament> getUpcomingTournaments() {
+        LocalDate today = LocalDate.now();
+        return tournamentRepository.findByDateGreaterThanEqualAndStatus(today, TournamentStatus.UPCOMING);
+    }
+
+    /**
+     * Получение завершенных турниров
+     * 
+     * @return список завершенных турниров
+     */
+    public List<Tournament> getCompletedTournaments() {
+        LocalDate today = LocalDate.now();
+        return tournamentRepository.findByDateLessThanAndStatus(today, TournamentStatus.COMPLETED);
+    }
+
+    /**
+     * Поиск турниров по местоположению
+     * 
+     * @param location местоположение
+     * @return список турниров в указанном месте
+     */
+    public List<Tournament> getTournamentsByLocation(String location) {
+        return tournamentRepository.findByLocationContainingIgnoreCase(location);
+    }
+
+    /**
+     * Получение бизнес-турниров
+     * 
+     * @return список бизнес-турниров
+     */
+    public List<Tournament> getBusinessTournaments() {
+        return tournamentRepository.findByIsBusinessTournament(true);
     }
 } 
