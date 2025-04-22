@@ -43,6 +43,7 @@ public class Registration {
     private User captain;
 
     @Column(nullable = false)
+    @Builder.Default
     private String status = "pending"; // "pending", "approved", "rejected"
 
     @ManyToMany
@@ -51,6 +52,7 @@ public class Registration {
         joinColumns = @JoinColumn(name = "registration_id"),
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+    @Builder.Default
     private List<User> players = new ArrayList<>();
 
     @CreationTimestamp

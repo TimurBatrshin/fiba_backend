@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -286,7 +287,7 @@ public class TournamentController {
         try {
             log.info("Получен запрос на создание турнира: {}, {}, {}, {}", title, dateStr, location, level);
             
-            LocalDateTime date = LocalDateTime.parse(dateStr);
+            LocalDate date = LocalDate.parse(dateStr);
             
             // Сохраняем изображение турнира, если оно было загружено
             String imageUrl = null;
@@ -297,7 +298,7 @@ public class TournamentController {
             
             // Создаем новый турнир
             Tournament tournament = Tournament.builder()
-                    .title(title)
+                    .name(title)
                     .date(date)
                     .location(location)
                     .level(level)
@@ -333,7 +334,7 @@ public class TournamentController {
         try {
             log.info("Получен запрос на создание бизнес-турнира: {}, {}, {}, {}", title, dateStr, location, level);
             
-            LocalDateTime date = LocalDateTime.parse(dateStr);
+            LocalDate date = LocalDate.parse(dateStr);
             
             // Сохраняем изображение турнира, если оно было загружено
             String imageUrl = null;
@@ -351,7 +352,7 @@ public class TournamentController {
             
             // Создаем новый бизнес-турнир
             Tournament tournament = Tournament.builder()
-                    .title(title)
+                    .name(title)
                     .date(date)
                     .location(location)
                     .level(level)
@@ -382,11 +383,11 @@ public class TournamentController {
         // Используем Optional для безопасного обновления полей
         Optional.ofNullable(tournamentData.get("title"))
             .map(String.class::cast)
-            .ifPresent(existingTournament::setTitle);
+            .ifPresent(existingTournament::setName);
         
         Optional.ofNullable(tournamentData.get("date"))
             .map(String.class::cast)
-            .map(LocalDateTime::parse)
+            .map(LocalDate::parse)
             .ifPresent(existingTournament::setDate);
         
         Optional.ofNullable(tournamentData.get("location"))
@@ -540,8 +541,8 @@ public class TournamentController {
     private Map<String, Object> convertToMap(Tournament tournament) {
         Map<String, Object> result = new HashMap<>();
         result.put("id", tournament.getId());
-        result.put("name", tournament.getTitle());
-        result.put("title", tournament.getTitle());
+        result.put("name", tournament.getName());
+        result.put("title", tournament.getName());
         result.put("date", tournament.getDate().toString());
         result.put("location", tournament.getLocation());
         result.put("level", tournament.getLevel());

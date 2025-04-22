@@ -55,7 +55,7 @@ public class TeamController {
         // Информация о турнире
         Map<String, Object> tournament = new HashMap<>();
         tournament.put("id", registration.getTournament().getId());
-        tournament.put("name", registration.getTournament().getTitle());
+        tournament.put("name", registration.getTournament().getName());
         result.put("tournament", tournament);
         
         // Информация о капитане

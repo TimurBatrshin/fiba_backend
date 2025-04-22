@@ -13,10 +13,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {
-        // Включаем поддержку суффикса для сопоставления путей
+        // Используем обновленный API для конфигурации соответствия путей
         configurer.setUseTrailingSlashMatch(true);
-        // Установка режима соответствия для путей с точкой в URL
-        configurer.setUseSuffixPatternMatch(false);
+        // Удаляем устаревший метод, так как в Spring Boot 3.x этот функционал изменен
+        // configurer.setUseSuffixPatternMatch(false);
     }
     
     @Override

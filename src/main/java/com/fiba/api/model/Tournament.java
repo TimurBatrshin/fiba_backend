@@ -70,14 +70,17 @@ public class Tournament {
     private Boolean registrationOpen;
 
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<TournamentTeam> teams = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Registration> registrations = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Ad> ads = new ArrayList<>();
     
     @CreationTimestamp

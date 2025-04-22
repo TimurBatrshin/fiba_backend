@@ -152,4 +152,14 @@ public class TournamentService {
     public List<Tournament> getBusinessTournaments() {
         return tournamentRepository.findByIsBusinessTournament(true);
     }
+    
+    /**
+     * Получение турниров по статусу
+     * 
+     * @param status статус турнира
+     * @return список турниров с указанным статусом
+     */
+    public List<Tournament> getTournamentsByStatus(String status) {
+        return tournamentRepository.findByStatus(status);
+    }
 } 

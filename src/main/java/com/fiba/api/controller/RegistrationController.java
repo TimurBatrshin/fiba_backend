@@ -213,7 +213,7 @@ public class RegistrationController {
         registrationMap.put("id", registration.getId());
         registrationMap.put("team_name", registration.getTeamName());
         registrationMap.put("tournament_id", registration.getTournament().getId());
-        registrationMap.put("tournament_title", registration.getTournament().getTitle());
+        registrationMap.put("tournament_title", registration.getTournament().getName());
         registrationMap.put("captain_id", registration.getCaptain().getId());
         registrationMap.put("captain_name", registration.getCaptain().getName());
         registrationMap.put("status", registration.getStatus());

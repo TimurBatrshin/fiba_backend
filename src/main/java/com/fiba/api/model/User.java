@@ -39,9 +39,11 @@ public class User {
     private String password;
 
     @Column(name = "email_verified")
+    @Builder.Default
     private boolean emailVerified = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private String role = "user";
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -49,18 +51,22 @@ public class User {
 
     @JsonIgnore
     @OneToMany(mappedBy = "captain", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<Registration> captainedTeams = new ArrayList<>();
 
     @JsonIgnore
     @ManyToMany(mappedBy = "players")
+    @Builder.Default
     private List<Registration> teams = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "advertiser")
+    @Builder.Default
     private List<Ad> adsAsAdvertiser = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "business")
+    @Builder.Default
     private List<Ad> adsAsBusiness = new ArrayList<>();
 
     @CreationTimestamp

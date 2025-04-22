@@ -26,8 +26,10 @@ public class AdResults {
     @JoinColumn(name = "ad_id")
     private Ad ad;
 
+    @Builder.Default
     private Integer clicks = 0;
     
+    @Builder.Default
     private Integer views = 0;
     
     @CreationTimestamp

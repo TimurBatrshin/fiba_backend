@@ -45,11 +45,14 @@ public class Profile {
     private Integer age;
 
     @Column(name = "tournaments_played")
+    @Builder.Default
     private Integer tournamentsPlayed = 0;
 
     @Column(name = "total_points")
+    @Builder.Default
     private Integer totalPoints = 0;
 
+    @Builder.Default
     private Integer rating = 0;
 
     @CreationTimestamp
