@@ -43,7 +43,7 @@ public class DatabaseConfig {
         log.info("Используемый URL базы данных: {}", datasourceUrl);
         
         if (dataSource == null) {
-            log.warn("DataSource не найден. Проверка соединения с базой данных пропущена.");
+            log.warn("DataSource не найден. Проверка соединения с базой данных пропущена. Убедитесь, что spring.autoconfigure.exclude не отключает DataSourceAutoConfiguration.");
             return;
         }
         
@@ -54,10 +54,18 @@ public class DatabaseConfig {
                 // Выводим версию БД для диагностики
                 JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
                 try {
-                    String dbVersion = jdbcTemplate.queryForObject("SELECT 1", String.class);
-                    log.info("Тестовый запрос выполнен успешно: {}", dbVersion);
+                    String dbVersion = jdbcTemplate.queryForObject("SELECT version()", String.class);
+                    log.info("Версия БД: {}", dbVersion);
                 } catch (Exception e) {
-                    log.warn("Не удалось выполнить тестовый запрос: {}", e.getMessage());
+                    log.warn("Не удалось получить версию БД: {}", e.getMessage());
+                    
+                    // Попробуем выполнить простой запрос
+                    try {
+                        Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+                        log.info("Тестовый запрос выполнен успешно: {}", result);
+                    } catch (Exception e2) {
+                        log.warn("Не удалось выполнить простой запрос: {}", e2.getMessage());
+                    }
                 }
             } else {
                 log.error("Подключение к базе данных неуспешно");
@@ -65,6 +73,8 @@ public class DatabaseConfig {
         } catch (SQLException e) {
             log.error("Ошибка при подключении к базе данных: {}", e.getMessage());
             log.debug("Детали ошибки:", e);
+            
+            // Проверим доступность базы данных
             try {
                 // Попытка создать временное подключение для проверки
                 log.info("Попытка создания нового соединения для диагностики...");
@@ -78,6 +88,7 @@ public class DatabaseConfig {
                 }
             } catch (Exception ex) {
                 log.error("Дополнительная попытка подключения также не удалась: {}", ex.getMessage());
+                log.error("Проверьте настройки подключения к БД в application.properties и доступность сервера БД.");
             }
         }
     }
