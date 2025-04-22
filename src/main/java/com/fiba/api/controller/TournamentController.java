@@ -2,12 +2,12 @@ package com.fiba.api.controller;
 
 import com.fiba.api.model.Registration;
 import com.fiba.api.model.Tournament;
+import com.fiba.api.model.TournamentStatus;
 import com.fiba.api.model.User;
 import com.fiba.api.service.RegistrationService;
 import com.fiba.api.service.TournamentService;
 import com.fiba.api.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -302,7 +301,7 @@ public class TournamentController {
                     .date(date)
                     .location(location)
                     .level(level)
-                    .prizePool(prizePool)
+                    .prizePool(String.valueOf(prizePool))
                     .status(TournamentStatus.UPCOMING)
                     .imageUrl(imageUrl)
                     .build();
@@ -356,7 +355,7 @@ public class TournamentController {
                     .date(date)
                     .location(location)
                     .level(level)
-                    .prizePool(prizePool)
+                    .prizePool(String.valueOf(prizePool))
                     .status(TournamentStatus.UPCOMING)
                     .imageUrl(imageUrl)
                     .sponsorName(sponsorName)
@@ -401,7 +400,7 @@ public class TournamentController {
         
         Optional.ofNullable(tournamentData.get("prize_pool"))
             .map(Object::toString)
-            .map(Integer::valueOf)
+            .map(String::valueOf)
             .ifPresent(existingTournament::setPrizePool);
         
         Optional.ofNullable(tournamentData.get("status"))
