@@ -52,6 +52,15 @@ public class Tournament {
     @Column(nullable = false)
     private TournamentStatus status;
 
+    @Column(name = "level")
+    private String level;
+    
+    @Column(name = "image_url")
+    private String imageUrl;
+    
+    @Column(name = "business_type")
+    private String businessType;
+
     private Integer maxTeams;
 
     private Double entryFee;

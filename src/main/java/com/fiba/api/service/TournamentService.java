@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -67,6 +68,17 @@ public class TournamentService {
                 .registrationOpen(request.getRegistrationOpen())
                 .build();
         
+        return tournamentRepository.save(tournament);
+    }
+
+    /**
+     * Создание нового турнира напрямую из объекта Tournament
+     * 
+     * @param tournament объект турнира для создания или обновления
+     * @return сохраненный турнир
+     */
+    @Transactional
+    public Tournament createTournament(Tournament tournament) {
         return tournamentRepository.save(tournament);
     }
 
@@ -160,6 +172,45 @@ public class TournamentService {
      * @return список турниров с указанным статусом
      */
     public List<Tournament> getTournamentsByStatus(String status) {
-        return tournamentRepository.findByStatus(status);
+        try {
+            TournamentStatus tournamentStatus = TournamentStatus.valueOf(status.toUpperCase());
+            return tournamentRepository.findByStatus(tournamentStatus);
+        } catch (IllegalArgumentException e) {
+            // Если статус не удается преобразовать в enum, возвращаем пустой список
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Поиск турниров по запросу
+     * 
+     * @param query поисковый запрос
+     * @return список найденных турниров
+     */
+    public List<Tournament> searchTournaments(String query) {
+        // Можно реализовать более сложную логику поиска
+        // Пока ищем по названию
+        return tournamentRepository.searchByTitle(query);
+    }
+    
+    /**
+     * Получение турниров по уровню
+     * 
+     * @param level уровень турнира
+     * @return список турниров с указанным уровнем
+     */
+    public List<Tournament> getTournamentsByLevel(String level) {
+        return tournamentRepository.findByLevel(level);
+    }
+    
+    /**
+     * Обновление турнира
+     * 
+     * @param tournament турнир для обновления
+     * @return обновленный турнир
+     */
+    @Transactional
+    public Tournament updateTournament(Tournament tournament) {
+        return tournamentRepository.save(tournament);
     }
 } 

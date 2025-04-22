@@ -52,7 +52,7 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long> {
      */
     List<Tournament> findByIsBusinessTournament(Boolean isBusinessTournament);
 
-    List<Tournament> findByStatus(String status);
+    List<Tournament> findByStatus(TournamentStatus status);
     
     List<Tournament> findByDateAfter(LocalDate date);
     
@@ -61,8 +61,8 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long> {
     @Query("SELECT t FROM Tournament t WHERE t.level = :level")
     List<Tournament> findByLevel(String level);
     
-    @Query("SELECT t FROM Tournament t WHERE LOWER(t.title) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    List<Tournament> searchByTitle(String searchTerm);
+    @Query("SELECT t FROM Tournament t WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    List<Tournament> searchByTitle(@Param("searchTerm") String searchTerm);
     
     /**
      * Получить турнир по ID с загрузкой всех регистраций команд

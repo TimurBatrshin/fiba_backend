@@ -303,7 +303,7 @@ public class TournamentController {
                     .location(location)
                     .level(level)
                     .prizePool(prizePool)
-                    .status("registration")
+                    .status(TournamentStatus.UPCOMING)
                     .imageUrl(imageUrl)
                     .build();
             
@@ -357,11 +357,12 @@ public class TournamentController {
                     .location(location)
                     .level(level)
                     .prizePool(prizePool)
-                    .status("registration")
+                    .status(TournamentStatus.UPCOMING)
                     .imageUrl(imageUrl)
                     .sponsorName(sponsorName)
                     .sponsorLogo(sponsorLogoUrl)
                     .businessType(businessType)
+                    .isBusinessTournament(true)
                     .build();
             
             Tournament createdTournament = tournamentService.createTournament(tournament);
@@ -378,7 +379,7 @@ public class TournamentController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateTournament(@PathVariable Long id, @RequestBody Map<String, Object> tournamentData) {
-        var existingTournament = tournamentService.getTournamentById(id);
+        Tournament existingTournament = tournamentService.getTournamentById(id);
         
         // Используем Optional для безопасного обновления полей
         Optional.ofNullable(tournamentData.get("title"))
@@ -405,6 +406,7 @@ public class TournamentController {
         
         Optional.ofNullable(tournamentData.get("status"))
             .map(String.class::cast)
+            .map(TournamentStatus::valueOf)
             .ifPresent(existingTournament::setStatus);
         
         // Обработка полей бизнес-турнира
@@ -420,7 +422,7 @@ public class TournamentController {
             .map(String.class::cast)
             .ifPresent(existingTournament::setBusinessType);
         
-        var updatedTournament = tournamentService.updateTournament(existingTournament);
+        Tournament updatedTournament = tournamentService.updateTournament(existingTournament);
         return ResponseEntity.ok(convertToMap(updatedTournament));
     }
 
