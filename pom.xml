@@ -48,7 +48,8 @@
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-postgresql</artifactId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>10.10.0</version> <!-- укажите актуальную версию -->
         </dependency>
         
         <!-- PostgreSQL драйвер -->
