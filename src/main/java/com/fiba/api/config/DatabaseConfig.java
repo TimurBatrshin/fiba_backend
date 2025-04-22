@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.sql.DataSource;
+import jakarta.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -53,8 +53,12 @@ public class DatabaseConfig {
                 log.info("Подключение к базе данных успешно");
                 // Выводим версию БД для диагностики
                 JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-                String dbVersion = jdbcTemplate.queryForObject("SELECT version()", String.class);
-                log.info("Версия базы данных: {}", dbVersion);
+                try {
+                    String dbVersion = jdbcTemplate.queryForObject("SELECT 1", String.class);
+                    log.info("Тестовый запрос выполнен успешно: {}", dbVersion);
+                } catch (Exception e) {
+                    log.warn("Не удалось выполнить тестовый запрос: {}", e.getMessage());
+                }
             } else {
                 log.error("Подключение к базе данных неуспешно");
             }
