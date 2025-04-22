@@ -30,7 +30,7 @@ import java.util.Map;
 @RequestMapping(path = "/api/auth")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"https://dev.bro-js.ru", "http://localhost:8099"}, allowCredentials = "true")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
