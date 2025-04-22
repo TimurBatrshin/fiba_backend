@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import jakarta.sql.DataSource;
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 

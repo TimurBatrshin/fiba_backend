@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,9 +54,9 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long> {
 
     List<Tournament> findByStatus(String status);
     
-    List<Tournament> findByDateAfter(LocalDateTime date);
+    List<Tournament> findByDateAfter(LocalDate date);
     
-    List<Tournament> findByDateBefore(LocalDateTime date);
+    List<Tournament> findByDateBefore(LocalDate date);
     
     @Query("SELECT t FROM Tournament t WHERE t.level = :level")
     List<Tournament> findByLevel(String level);

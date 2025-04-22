@@ -207,7 +207,7 @@ public class AdController {
         adMap.put("title", ad.getTitle());
         adMap.put("image_url", ad.getImageUrl());
         adMap.put("tournament_id", ad.getTournament() != null ? ad.getTournament().getId() : null);
-        adMap.put("tournament_title", ad.getTournament() != null ? ad.getTournament().getTitle() : null);
+        adMap.put("tournament_title", ad.getTournament() != null ? ad.getTournament().getName() : null);
         adMap.put("advertiser_id", ad.getAdvertiser() != null ? ad.getAdvertiser().getId() : null);
         adMap.put("advertiser_name", ad.getAdvertiser() != null ? ad.getAdvertiser().getName() : null);
         adMap.put("business_id", ad.getBusiness() != null ? ad.getBusiness().getId() : null);
