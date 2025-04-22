@@ -1,0 +1,15 @@
+.git
+.github
+.gitignore
+.idea
+*.iml
+*.iws
+*.ipr
+*.log
+*.class
+logs/
+target/
+!target/api-1.0.0.jar
+node_modules/
+README.md
+*.md 
