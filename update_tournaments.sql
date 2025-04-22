@@ -1,0 +1,1 @@
+UPDATE tournaments SET name = 'Unnamed Tournament' WHERE name IS NULL; 
