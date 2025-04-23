@@ -5,6 +5,7 @@ import com.fiba.api.model.User;
 import com.fiba.api.service.ProfileService;
 import com.fiba.api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/players")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:8099", "https://dev.bro-js.ru"}, allowCredentials = "true")
+@Slf4j
 public class PlayerController {
 
     private final ProfileService profileService;
@@ -138,30 +141,38 @@ public class PlayerController {
      */
     @GetMapping("/search")
     public ResponseEntity<?> searchPlayers(@RequestParam String query) {
-        List<User> users = userService.searchUsers(query);
-        List<Map<String, Object>> result = new ArrayList<>();
-        
-        for (User user : users) {
-            try {
-                Profile profile = profileService.getProfileByUserId(user.getId());
-                
-                Map<String, Object> playerData = new HashMap<>();
-                playerData.put("id", user.getId());
-                playerData.put("name", user.getName());
-                playerData.put("email", user.getEmail());
-                playerData.put("points", profile.getTotalPoints());
-                playerData.put("rating", profile.getRating());
-                playerData.put("tournaments_played", profile.getTournamentsPlayed());
-                playerData.put("photo_url", profile.getPhotoUrl());
-                
-                result.add(playerData);
-            } catch (Exception e) {
-                // Если у пользователя нет профиля, пропускаем его
-                continue;
+        log.info("Поиск игроков по запросу: {}", query);
+        try {
+            List<User> users = userService.searchUsers(query);
+            List<Map<String, Object>> result = new ArrayList<>();
+            
+            for (User user : users) {
+                try {
+                    Profile profile = profileService.getProfileByUserId(user.getId());
+                    
+                    Map<String, Object> playerData = new HashMap<>();
+                    playerData.put("id", user.getId());
+                    playerData.put("name", user.getName());
+                    playerData.put("email", user.getEmail());
+                    playerData.put("points", profile.getTotalPoints());
+                    playerData.put("rating", profile.getRating());
+                    playerData.put("tournaments_played", profile.getTournamentsPlayed());
+                    playerData.put("photo_url", profile.getPhotoUrl());
+                    
+                    result.add(playerData);
+                } catch (Exception e) {
+                    // Если у пользователя нет профиля, пропускаем его
+                    log.warn("Пропускаем пользователя без профиля: {}", user.getId());
+                    continue;
+                }
             }
+            
+            log.info("Найдено {} игроков", result.size());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Ошибка при поиске игроков: {}", e.getMessage());
+            return ResponseEntity.ok(new ArrayList<>());  // Возвращаем пустой список вместо ошибки
         }
-        
-        return ResponseEntity.ok(result);
     }
 
     /**

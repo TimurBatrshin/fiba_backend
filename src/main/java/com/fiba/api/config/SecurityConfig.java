@@ -71,6 +71,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/tournaments/**").permitAll()
                 .requestMatchers("/api/ads/public/**").permitAll()
                 .requestMatchers("/api/users/search").permitAll()
+                .requestMatchers("/api/players/search").permitAll()
+                .requestMatchers("/api/players/rankings").permitAll()
                 .requestMatchers("/api/proxy/**").permitAll()
                 // Swagger UI и OpenAPI
                 .requestMatchers("/swagger-ui/**").permitAll()
