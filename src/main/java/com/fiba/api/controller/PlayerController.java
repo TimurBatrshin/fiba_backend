@@ -244,4 +244,47 @@ public class PlayerController {
         
         return ResponseEntity.ok(result);
     }
+
+    /**
+     * Получение топ игроков для главной страницы
+     * @param limit максимальное количество игроков (по умолчанию 5)
+     * @return список лучших игроков
+     */
+    @GetMapping("/top")
+    public ResponseEntity<?> getTopPlayers(@RequestParam(defaultValue = "5") int limit) {
+        log.info("Запрос на получение топ-{} игроков", limit);
+        
+        try {
+            // Фильтруем профили, чтобы исключить null значения
+            List<Profile> validProfiles = profileService.getAllProfiles()
+                .stream()
+                .filter(profile -> profile.getTotalPoints() != null && profile.getRating() != null)
+                .sorted(Comparator.comparing(Profile::getRating, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .limit(limit)
+                .collect(Collectors.toList());
+            
+            // Преобразуем в формат данных для клиента
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Profile profile : validProfiles) {
+                User user = userService.getUserById(profile.getUser().getId());
+                
+                Map<String, Object> playerData = new HashMap<>();
+                playerData.put("id", user.getId());
+                playerData.put("name", user.getName());
+                playerData.put("rating", profile.getRating() != null ? profile.getRating() : 0);
+                playerData.put("points", profile.getTotalPoints() != null ? profile.getTotalPoints() : 0);
+                playerData.put("tournaments_played", profile.getTournamentsPlayed() != null ? profile.getTournamentsPlayed() : 0);
+                playerData.put("photo_url", profile.getPhotoUrl());
+                playerData.put("rank", profile.getRating() > 80 ? "Pro" : "Amateur");
+                
+                result.add(playerData);
+            }
+            
+            log.info("Возвращается {} лучших игроков", result.size());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Ошибка при получении топ игроков: {}", e.getMessage(), e);
+            return ResponseEntity.ok(new ArrayList<>());  // Возвращаем пустой список вместо ошибки
+        }
+    }
 } 
