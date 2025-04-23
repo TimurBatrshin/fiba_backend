@@ -1,1 +1,1 @@
-web: chmod +x start-railway.sh && ./start-railway.sh 
+web: java $JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -Dserver.port=$PORT -Dserver.address=0.0.0.0 -jar target/api-1.0.0.jar 
