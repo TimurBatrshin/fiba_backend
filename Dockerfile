@@ -5,9 +5,9 @@ WORKDIR /app
 # Копируем JAR-файл
 COPY target/api-1.0.0.jar app.jar
 
-# Explicitly expose port from environment or default to 8080
+# Явное указание сетевых настроек
 ENV PORT=8080
 EXPOSE ${PORT}
 
-# Use the PORT environment variable when running the jar
-CMD java -Dserver.port=${PORT} -jar app.jar
+# Запуск с явным указанием сетевых параметров
+CMD java -Dserver.port=${PORT} -Dserver.address=0.0.0.0 -jar app.jar
