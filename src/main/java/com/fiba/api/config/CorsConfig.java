@@ -16,7 +16,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                     "http://localhost:8099", 
-                    "https://dev.bro-js.ru"
+                    "https://dev.bro-js.ru",
+                    "https://timurbatrshin-fiba-backend-fc1f.twc1.net"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
@@ -31,6 +32,7 @@ public class CorsConfig implements WebMvcConfigurer {
         
         config.addAllowedOrigin("http://localhost:8099");
         config.addAllowedOrigin("https://dev.bro-js.ru");
+        config.addAllowedOrigin("https://timurbatrshin-fiba-backend-fc1f.twc1.net");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true);

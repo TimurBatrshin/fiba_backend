@@ -20,7 +20,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOrigins("https://dev.bro-js.ru", "http://localhost:8099")  // Разрешаем запросы с локального и боевого домена
+            .allowedOrigins("https://dev.bro-js.ru", "http://localhost:8099", "https://timurbatrshin-fiba-backend-fc1f.twc1.net")  // Разрешаем запросы с локального и боевого домена
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             .allowedHeaders("Origin", "Content-Type", "Accept", "Authorization")
             .allowCredentials(true)  // Разрешаем передачу учетных данных
