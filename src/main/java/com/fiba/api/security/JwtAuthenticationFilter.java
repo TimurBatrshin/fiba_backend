@@ -29,14 +29,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String token = getJwtFromRequest(request);
+            log.debug("JWT токен из запроса: {}", token != null ? "получен" : "отсутствует");
+            
             if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
                 try {
                     Authentication authentication = jwtTokenProvider.getAuthentication(token);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("Аутентификация успешно установлена в SecurityContext");
                 } catch (UsernameNotFoundException ex) {
                     log.error("Не удалось установить аутентификацию пользователя в security context", ex);
                     SecurityContextHolder.clearContext();
                 }
+            } else if (StringUtils.hasText(token)) {
+                log.warn("Полученный JWT токен недействителен");
             }
         } catch (Exception ex) {
             log.error("Не удалось установить аутентификацию пользователя в security context", ex);
@@ -47,6 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        log.debug("Authorization header: {}", bearerToken != null ? (bearerToken.length() > 15 ? 
+                  bearerToken.substring(0, 15) + "..." : bearerToken) : "отсутствует");
+                  
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
