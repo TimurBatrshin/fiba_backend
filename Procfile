@@ -1,1 +1,1 @@
-web: java $JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -Dserver.port=$PORT -Dserver.address=0.0.0.0 -jar target/api-1.0.0.jar 
+web: java -Dserver.port=$PORT -Dserver.address=0.0.0.0 -Dmanagement.server.port=$PORT -Dmanagement.endpoints.web.base-path=/actuator -jar target/api-1.0.0.jar 

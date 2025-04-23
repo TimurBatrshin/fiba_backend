@@ -103,6 +103,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/players/rankings").permitAll()
                 .requestMatchers("/api/players/top").permitAll()
                 .requestMatchers("/api/proxy/**").permitAll()
+                // Actuator endpoints
+                .requestMatchers("/actuator/**").permitAll()
                 // Swagger UI и OpenAPI
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
