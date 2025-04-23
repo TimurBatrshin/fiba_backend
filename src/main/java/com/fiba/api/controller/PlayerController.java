@@ -93,6 +93,39 @@ public class PlayerController {
     }
 
     /**
+     * Поиск игроков по имени
+     * @param query строка для поиска
+     * @return список найденных игроков
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchPlayers(@RequestParam String query) {
+        List<User> users = userService.searchUsers(query);
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (User user : users) {
+            try {
+                Profile profile = profileService.getProfileByUserId(user.getId());
+                
+                Map<String, Object> playerData = new HashMap<>();
+                playerData.put("id", user.getId());
+                playerData.put("name", user.getName());
+                playerData.put("email", user.getEmail());
+                playerData.put("points", profile.getTotalPoints());
+                playerData.put("rating", profile.getRating());
+                playerData.put("tournaments_played", profile.getTournamentsPlayed());
+                playerData.put("photo_url", profile.getPhotoUrl());
+                
+                result.add(playerData);
+            } catch (Exception e) {
+                // Если у пользователя нет профиля, пропускаем его
+                continue;
+            }
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * Получение рейтинга игроков по определенной категории
      * @param category категория рейтинга (points, rating, tournaments_played)
      * @param limit максимальное количество записей в результате
