@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"https://timurbatrshin-fiba-backend-1aa7.twc1.net", "https://timurbatrshin-fiba-backend-95ba.twc1.net", "http://localhost:8099", "https://dev.bro-js.ru"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:8099", "https://dev.bro-js.ru"}, allowCredentials = "true")
 public class UserController {
 
     private final UserService userService;
