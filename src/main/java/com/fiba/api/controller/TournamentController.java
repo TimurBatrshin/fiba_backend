@@ -444,8 +444,8 @@ public class TournamentController {
         // Получаем турнир
         Tournament tournament = tournamentService.getTournamentById(tournamentId);
         
-        // Проверяем, что турнир находится в статусе регистрации
-        if (!"registration".equals(tournament.getStatus())) {
+        // Проверяем, что регистрация на турнир открыта и турнир предстоящий
+        if (!tournament.isRegistrationOpen() || !"UPCOMING".equals(tournament.getStatus())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Регистрация на этот турнир закрыта"));
         }
         
@@ -549,6 +549,7 @@ public class TournamentController {
         result.put("level", tournament.getLevel());
         result.put("prize_pool", tournament.getPrizePool());
         result.put("status", tournament.getStatus());
+        result.put("registration_open", tournament.getRegistrationOpen());
         
         // Добавляем URL изображения, если оно есть
         if (tournament.getImageUrl() != null) {
