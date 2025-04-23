@@ -17,7 +17,10 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                     "http://localhost:8099", 
                     "https://dev.bro-js.ru",
-                    "https://timurbatrshin-fiba-backend-fc1f.twc1.net"
+                    "https://timurbatrshin-fiba-backend-fc1f.twc1.net",
+                    "https://timurbatrshin-fiba-backend-5ef6.twc1.net",
+                    "http://localhost:3000",
+                    "http://localhost"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
@@ -33,6 +36,9 @@ public class CorsConfig implements WebMvcConfigurer {
         config.addAllowedOrigin("http://localhost:8099");
         config.addAllowedOrigin("https://dev.bro-js.ru");
         config.addAllowedOrigin("https://timurbatrshin-fiba-backend-fc1f.twc1.net");
+        config.addAllowedOrigin("https://timurbatrshin-fiba-backend-5ef6.twc1.net");
+        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("http://localhost");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true);

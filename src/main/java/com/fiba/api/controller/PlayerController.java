@@ -15,7 +15,14 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/players")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:8099", "https://dev.bro-js.ru"}, allowCredentials = "true")
+@CrossOrigin(origins = {
+    "http://localhost:8099", 
+    "https://dev.bro-js.ru", 
+    "https://timurbatrshin-fiba-backend-fc1f.twc1.net",
+    "https://timurbatrshin-fiba-backend-5ef6.twc1.net",
+    "http://localhost:3000",
+    "http://localhost"
+}, allowCredentials = "true")
 @Slf4j
 public class PlayerController {
 
@@ -136,11 +143,12 @@ public class PlayerController {
 
     /**
      * Поиск игроков по имени
-     * @param query строка для поиска
+     * @param params параметры поиска (query - строка для поиска)
      * @return список найденных игроков
      */
     @GetMapping("/search")
-    public ResponseEntity<?> searchPlayers(@RequestParam String query) {
+    public ResponseEntity<?> searchPlayers(@RequestParam(required = false) Map<String, String> params) {
+        String query = params.getOrDefault("query", "");
         log.info("Поиск игроков по запросу: {}", query);
         try {
             List<User> users = userService.searchUsers(query);
@@ -170,7 +178,7 @@ public class PlayerController {
             log.info("Найдено {} игроков", result.size());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Ошибка при поиске игроков: {}", e.getMessage());
+            log.error("Ошибка при поиске игроков: {}", e.getMessage(), e);
             return ResponseEntity.ok(new ArrayList<>());  // Возвращаем пустой список вместо ошибки
         }
     }
