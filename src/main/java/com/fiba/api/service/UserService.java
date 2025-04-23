@@ -58,8 +58,17 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Пользователь", "email", email));
+        try {
+            if (email == null || email.trim().isEmpty()) {
+                throw new IllegalArgumentException("Email не может быть пустым");
+            }
+            return userRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("Пользователь", "email", email));
+        } catch (ResourceNotFoundException e) {
+            throw e; // Пробрасываем оригинальную ошибку, если пользователь не найден
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка при поиске пользователя по email: " + e.getMessage(), e);
+        }
     }
     
     /**

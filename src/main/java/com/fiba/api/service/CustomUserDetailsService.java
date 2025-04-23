@@ -24,21 +24,30 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь с email " + email + " не найден"));
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UsernameNotFoundException("Пользователь с email " + email + " не найден"));
 
-        // Создаем роль на основе роли пользователя с префиксом "ROLE_"
-        String roleWithPrefix = "ROLE_" + user.getRole().toUpperCase();
-        
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix)))
-                .accountExpired(!user.isEmailVerified())
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(false)
-                .build();
+            // Создаем роль на основе роли пользователя с префиксом "ROLE_"
+            String roleWithPrefix = "ROLE_" + user.getRole().toUpperCase();
+            
+            boolean accountNonExpired = user.isEmailVerified(); // аккаунт не истек, если email подтвержден
+            
+            return org.springframework.security.core.userdetails.User
+                    .withUsername(user.getEmail())
+                    .password(user.getPassword())
+                    .authorities(Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix)))
+                    .accountExpired(!accountNonExpired) // инверсия, так как метод принимает "expired" (истек), а не "non-expired"
+                    .accountLocked(false)
+                    .credentialsExpired(false)
+                    .disabled(false)
+                    .build();
+        } catch (UsernameNotFoundException e) {
+            throw e; // Пробрасываем оригинальное исключение для корректной обработки
+        } catch (Exception e) {
+            // Оборачиваем другие исключения для предоставления более понятной ошибки
+            throw new UsernameNotFoundException("Ошибка при загрузке пользователя: " + e.getMessage(), e);
+        }
     }
     
     /**

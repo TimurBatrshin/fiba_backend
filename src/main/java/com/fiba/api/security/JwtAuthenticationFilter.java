@@ -35,16 +35,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     Authentication authentication = jwtTokenProvider.getAuthentication(token);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("Аутентификация успешно установлена в SecurityContext");
+                    log.debug("Аутентификация успешно установлена в SecurityContext для пути: {}", request.getRequestURI());
                 } catch (UsernameNotFoundException ex) {
-                    log.error("Не удалось установить аутентификацию пользователя в security context", ex);
+                    log.error("Не удалось установить аутентификацию пользователя: пользователь не найден", ex);
+                    SecurityContextHolder.clearContext();
+                } catch (Exception ex) {
+                    log.error("Не удалось установить аутентификацию пользователя: {}", ex.getMessage(), ex);
                     SecurityContextHolder.clearContext();
                 }
             } else if (StringUtils.hasText(token)) {
-                log.warn("Полученный JWT токен недействителен");
+                log.warn("Полученный JWT токен недействителен для пути: {}", request.getRequestURI());
             }
         } catch (Exception ex) {
-            log.error("Не удалось установить аутентификацию пользователя в security context", ex);
+            log.error("Не удалось обработать JWT токен: {}", ex.getMessage(), ex);
+            SecurityContextHolder.clearContext();
         }
         
         filterChain.doFilter(request, response);

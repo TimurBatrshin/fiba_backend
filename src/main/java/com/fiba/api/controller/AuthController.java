@@ -52,10 +52,20 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("timestamp", System.currentTimeMillis());
+        response.put("service", "auth-service");
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest authRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest authRequest) {
         log.info("Запрос на вход: {}", authRequest.getEmail());
         try {
+            log.debug("Начало аутентификации для пользователя: {}", authRequest.getEmail());
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                     authRequest.getEmail(), 
@@ -63,12 +73,17 @@ public class AuthController {
                 )
             );
             
+            log.debug("Аутентификация успешна, устанавливаем контекст безопасности");
             SecurityContextHolder.getContext().setAuthentication(authentication);
             
+            log.debug("Получаем данные пользователя");
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            
+            log.debug("Создаем JWT токен");
             String jwt = jwtTokenProvider.createToken(userDetails.getUsername(), 
                     userDetails.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
             
+            log.debug("Получаем информацию о пользователе из базы данных");
             User user = userService.findByEmail(authRequest.getEmail());
             
             log.info("Пользователь успешно вошел: {}", user.getEmail());
@@ -81,17 +96,24 @@ public class AuthController {
                 user.getRole()
             ));
         } catch (Exception e) {
-            log.error("Ошибка входа пользователя: {}", e.getMessage(), e);
-            throw e;
+            log.error("Ошибка входа пользователя: {} - {}", authRequest.getEmail(), e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Ошибка аутентификации");
+            errorResponse.put("details", e.getMessage());
+            errorResponse.put("timestamp", System.currentTimeMillis());
+            return ResponseEntity.status(401).body(errorResponse);
         }
     }
     
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         log.info("Запрос на регистрацию: {}", registerRequest.getEmail());
         try {
+            log.debug("Начало регистрации пользователя: {}", registerRequest.getEmail());
             User user = userService.registerUser(registerRequest);
             
+            log.debug("Создание JWT токена для нового пользователя");
             String jwt = jwtTokenProvider.createToken(user.getEmail(), user.getRole());
             
             log.info("Пользователь успешно зарегистрирован: {}", user.getEmail());
@@ -104,8 +126,12 @@ public class AuthController {
                 user.getRole()
             ));
         } catch (Exception e) {
-            log.error("Ошибка регистрации пользователя: {}", e.getMessage(), e);
-            throw e;
+            log.error("Ошибка регистрации пользователя: {} - {}", registerRequest.getEmail(), e.getMessage(), e);
+            return ResponseEntity.status(400).body(Map.of(
+                "error", "Ошибка регистрации", 
+                "message", e.getMessage(),
+                "timestamp", System.currentTimeMillis()
+            ));
         }
     }
     
