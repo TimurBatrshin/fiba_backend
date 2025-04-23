@@ -91,6 +91,45 @@ public class PlayerController {
             return ResponseEntity.badRequest().body(Map.of("error", "Детальная статистика игрока не найдена"));
         }
     }
+    
+    /**
+     * Получение полной статистики игрока (соответствует требованиям фронтенда)
+     * @param id идентификатор игрока
+     * @return статистика игрока
+     */
+    @GetMapping("/{id}/statistics")
+    public ResponseEntity<?> getPlayerStatistics(@PathVariable Long id) {
+        try {
+            Profile profile = profileService.getProfileByUserId(id);
+            User user = userService.getUserById(id);
+            
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("id", user.getId());
+            stats.put("name", user.getName());
+            stats.put("email", user.getEmail());
+            stats.put("photo_url", profile.getPhotoUrl());
+            
+            // Базовые показатели
+            stats.put("points", profile.getTotalPoints());
+            stats.put("rating", profile.getRating());
+            stats.put("tournaments_played", profile.getTournamentsPlayed());
+            
+            // Детальные показатели (могут быть расширены в будущем)
+            stats.put("wins", 0);
+            stats.put("losses", 0);
+            stats.put("games_played", 0);
+            stats.put("average_points", 0.0);
+            
+            // Дополнительная информация для отображения
+            stats.put("position", "Guard"); // Позиция игрока (заглушка)
+            stats.put("team", "Freelancer"); // Команда (заглушка)
+            stats.put("rank", profile.getRating() > 80 ? "Pro" : "Amateur"); // Ранг игрока
+            
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Статистика игрока не найдена"));
+        }
+    }
 
     /**
      * Поиск игроков по имени
