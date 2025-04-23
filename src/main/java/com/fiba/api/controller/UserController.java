@@ -17,10 +17,24 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"https://timurbatrshin-fiba-backend-1aa7.twc1.net", "http://localhost:8099", "https://dev.bro-js.ru"}, allowCredentials = "true")
 public class UserController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+
+    @GetMapping("/api/users/me")
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Пользователь не аутентифицирован"));
+        }
+        try {
+            User user = userService.getUserByEmail(userDetails.getUsername());
+            return ResponseEntity.ok(convertToMap(user));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Ошибка при получении данных пользователя"));
+        }
+    }
 
     @GetMapping("/api/user/role")
     public ResponseEntity<?> getUserRole(@AuthenticationPrincipal UserDetails userDetails) {

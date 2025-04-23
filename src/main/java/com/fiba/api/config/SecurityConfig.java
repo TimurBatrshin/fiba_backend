@@ -70,6 +70,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/ads/public/**").permitAll()
                 .requestMatchers("/api/users/search").permitAll()
                 .requestMatchers("/api/proxy/**").permitAll()
+                // Swagger UI и OpenAPI
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                .requestMatchers("/api-docs/**").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
