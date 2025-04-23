@@ -38,7 +38,7 @@ public class UserService {
                 .email(registerRequest.getEmail())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .emailVerified(true) // Для демо считаем все email подтвержденными
-                .role(registerRequest.getRole())
+                .role(registerRequest.getRole().toUpperCase())
                 .build();
 
         User savedUser = userRepository.save(user);
