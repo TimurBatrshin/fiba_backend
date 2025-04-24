@@ -169,10 +169,37 @@ public class ProfileController {
     @PostMapping(value = "/profile/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProfilePhotoById(
             @PathVariable Long id,
-            @RequestParam("photo") MultipartFile photo) {
+            @RequestParam(value = "photo", required = false) MultipartFile photoParam,
+            @RequestPart(value = "file", required = false) MultipartFile fileParam) {
         
         try {
             log.info("Получен запрос на загрузку фото для профиля с ID: {}", id);
+            
+            // Определяем, какой параметр использовать
+            MultipartFile photo = photoParam != null ? photoParam : fileParam;
+            
+            // Проверяем файл
+            if (photo == null || photo.isEmpty()) {
+                log.error("Файл не был передан или пустой");
+                // Проверка наличия файлов в запросе
+                Map<String, MultipartFile> files = new HashMap<>();
+                try {
+                    // Попытка получить все файлы из запроса
+                    Map<String, MultipartFile[]> fileMap = ((jakarta.servlet.http.HttpServletRequest) 
+                            org.springframework.web.context.request.RequestContextHolder
+                            .currentRequestAttributes()
+                            .resolveReference("request"))
+                            .getParameterMap();
+                    log.info("Параметры запроса: {}", fileMap.keySet());
+                } catch (Exception e) {
+                    log.error("Ошибка при получении файлов из запроса: {}", e.getMessage());
+                }
+                
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Файл не был передан или пустой", 
+                    "debug", "Проверьте, что файл отправляется с именем параметра 'photo' или 'file'"
+                ));
+            }
             
             // Находим профиль по id
             Profile profile = profileService.getProfileById(id);
@@ -183,12 +210,6 @@ public class ProfileController {
             
             log.info("Профиль найден. Загружаемый файл: имя={}, размер={}, тип={}",
                     photo.getOriginalFilename(), photo.getSize(), photo.getContentType());
-            
-            // Проверяем файл
-            if (photo == null || photo.isEmpty()) {
-                log.error("Файл не был передан или пустой");
-                return ResponseEntity.badRequest().body(Map.of("error", "Файл не был передан или пустой"));
-            }
             
             // Сохраняем фото и получаем URL
             String photoUrl = fileStorageService.storeProfilePhoto(photo);
