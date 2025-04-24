@@ -712,8 +712,8 @@ public class TournamentController {
             
             TournamentTeam tournamentTeam = tournamentTeamOpt.get();
             
-            // Изменяем статус на CONFIRMED
-            tournamentTeam.setStatus(TeamStatus.CONFIRMED);
+            // Изменяем статус на APPROVED
+            tournamentTeam.setStatus(TeamStatus.APPROVED);
             
             // Сохраняем изменения
             tournamentService.saveTournamentTeam(tournamentTeam);
@@ -777,7 +777,7 @@ public class TournamentController {
             Map<String, Object> result = new HashMap<>();
             result.put("id", teamId);
             result.put("tournament_id", tournamentId);
-            result.put("status", "REJECTED");
+            result.put("status", TeamStatus.REJECTED.toString());
             result.put("message", "Команда отклонена для участия в турнире");
             
             return ResponseEntity.ok(result);
