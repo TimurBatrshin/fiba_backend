@@ -7,12 +7,12 @@ import com.fiba.api.model.User;
 import com.fiba.api.service.RegistrationService;
 import com.fiba.api.service.TournamentService;
 import com.fiba.api.service.UserService;
-import lombok.RequiredArgsConstructor;
+import com.fiba.api.service.FileStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpStatus;
 
@@ -30,11 +30,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fiba.api.service.FileStorageService;
-
+/**
+ * Контроллер для работы с турнирами
+ */
 @RestController
 @RequestMapping("/api/tournaments")
-@RequiredArgsConstructor
 public class TournamentController {
 
     private static final Logger log = LoggerFactory.getLogger(TournamentController.class);
@@ -44,6 +44,29 @@ public class TournamentController {
     private final RegistrationService registrationService;
     private final FileStorageService fileStorageService;
 
+    /**
+     * Конструктор для внедрения зависимостей
+     * 
+     * @param tournamentService сервис турниров
+     * @param userService сервис пользователей
+     * @param registrationService сервис регистраций
+     * @param fileStorageService сервис хранения файлов
+     */
+    @Autowired
+    public TournamentController(
+            TournamentService tournamentService,
+            UserService userService,
+            RegistrationService registrationService,
+            FileStorageService fileStorageService) {
+        this.tournamentService = tournamentService;
+        this.userService = userService;
+        this.registrationService = registrationService;
+        this.fileStorageService = fileStorageService;
+    }
+
+    /**
+     * Получение списка всех турниров с возможностью фильтрации и сортировки
+     */
     @GetMapping
     public ResponseEntity<?> getAllTournaments(
             @RequestParam(required = false) Integer limit,
@@ -54,225 +77,158 @@ public class TournamentController {
         try {
             log.info("Получен запрос на получение турниров: limit={}, sort={}, direction={}, upcoming={}", 
                     limit, sort, direction, upcoming);
-                    
-            List<Map<String, Object>> hardcodedTournaments = new ArrayList<>();
             
-            // Создаем фиксированные данные турниров
-            Map<String, Object> tournament1 = new HashMap<>();
-            tournament1.put("id", 1L);
-            tournament1.put("name", "Весенний Кубок FIBA 2025");
-            tournament1.put("title", "Весенний Кубок FIBA 2025");
-            tournament1.put("date", "2025-05-15T10:00:00");
-            tournament1.put("location", "Москва, СК \"Олимпийский\"");
-            tournament1.put("level", "Профессиональный");
-            tournament1.put("prize_pool", 1000000);
-            tournament1.put("status", "registration");
-            tournament1.put("sponsor_name", "Adidas");
-            tournament1.put("sponsor_logo", "/uploads/sponsors/adidas.jpg");
-            tournament1.put("image_url", "/uploads/sponsors/adidas.jpg");
-            tournament1.put("business_type", "Спортивные товары");
-            tournament1.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament1);
+            List<Tournament> tournaments = tournamentService.getAllTournaments(sort, direction);
             
-            Map<String, Object> tournament2 = new HashMap<>();
-            tournament2.put("id", 2L);
-            tournament2.put("name", "Любительский турнир 3x3");
-            tournament2.put("title", "Любительский турнир 3x3");
-            tournament2.put("date", "2025-06-10T12:00:00");
-            tournament2.put("location", "Санкт-Петербург, Площадь Спорта");
-            tournament2.put("level", "Любительский");
-            tournament2.put("prize_pool", 250000);
-            tournament2.put("status", "registration");
-            tournament2.put("sponsor_name", "Nike");
-            tournament2.put("sponsor_logo", "/uploads/sponsors/nike.jpg");
-            tournament2.put("image_url", "/uploads/sponsors/nike.jpg");
-            tournament2.put("business_type", "Спортивные товары");
-            tournament2.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament2);
-            
-            Map<String, Object> tournament3 = new HashMap<>();
-            tournament3.put("id", 3L);
-            tournament3.put("name", "Молодежный Кубок");
-            tournament3.put("title", "Молодежный Кубок");
-            tournament3.put("date", "2025-07-05T11:00:00");
-            tournament3.put("location", "Казань, Баскет-Холл");
-            tournament3.put("level", "Юниоры");
-            tournament3.put("prize_pool", 150000);
-            tournament3.put("status", "registration");
-            tournament3.put("sponsor_name", "Under Armour");
-            tournament3.put("sponsor_logo", "/uploads/sponsors/underarmour.jpg");
-            tournament3.put("image_url", "/uploads/sponsors/underarmour.jpg");
-            tournament3.put("business_type", "Спортивные товары");
-            tournament3.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament3);
-            
-            Map<String, Object> tournament4 = new HashMap<>();
-            tournament4.put("id", 4L);
-            tournament4.put("name", "Стритбол Фест 2025");
-            tournament4.put("title", "Стритбол Фест 2025");
-            tournament4.put("date", "2025-08-20T14:00:00");
-            tournament4.put("location", "Москва, Парк Горького");
-            tournament4.put("level", "Открытый");
-            tournament4.put("prize_pool", 300000);
-            tournament4.put("status", "registration");
-            tournament4.put("sponsor_name", "Спортмастер");
-            tournament4.put("sponsor_logo", "/uploads/sponsors/sportmaster.jpg");
-            tournament4.put("image_url", "/uploads/sponsors/sportmaster.jpg");
-            tournament4.put("business_type", "Спортивные товары");
-            tournament4.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament4);
-            
-            // Фильтрация по upcoming
+            // Фильтрация по предстоящим/прошедшим
             if (upcoming != null) {
-                LocalDateTime now = LocalDateTime.now();
-                hardcodedTournaments = hardcodedTournaments.stream()
-                    .filter(t -> {
-                        LocalDateTime tournamentDate = LocalDateTime.parse((String) t.get("date"));
-                        return upcoming ? tournamentDate.isAfter(now) : tournamentDate.isBefore(now);
-                    })
+                LocalDate today = LocalDate.now();
+                tournaments = tournaments.stream()
+                    .filter(t -> upcoming ? 
+                            t.getDate().isEqual(today) || t.getDate().isAfter(today) :
+                            t.getDate().isBefore(today))
                     .collect(Collectors.toList());
             }
             
-            // Ограничение количества результатов
-            if (limit != null && limit > 0 && limit < hardcodedTournaments.size()) {
-                hardcodedTournaments = hardcodedTournaments.subList(0, limit);
+            // Ограничение количества
+            if (limit != null && limit > 0 && limit < tournaments.size()) {
+                tournaments = tournaments.subList(0, limit);
             }
             
-            log.info("Возвращается {} турниров", hardcodedTournaments.size());
-            return ResponseEntity.ok(hardcodedTournaments);
+            List<Map<String, Object>> result = tournaments.stream()
+                    .map(this::convertToMap)
+                    .collect(Collectors.toList());
+            
+            log.info("Возвращается {} турниров", result.size());
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Ошибка при получении турниров", e);
-            // В случае ошибки возвращаем пустой список
-            return ResponseEntity.ok(new ArrayList<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении списка турниров: " + e.getMessage()));
         }
     }
 
+    /**
+     * Получение турнира по ID
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> getTournamentById(@PathVariable Long id) {
-        var tournament = tournamentService.getTournamentById(id);
-        return ResponseEntity.ok(convertToMap(tournament));
+        try {
+            Tournament tournament = tournamentService.getTournamentById(id);
+            return ResponseEntity.ok(convertToMap(tournament));
+        } catch (Exception e) {
+            log.error("Ошибка при получении турнира с ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Турнир не найден: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Получение турниров по статусу
+     */
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getTournamentsByStatus(@PathVariable String status) {
-        var tournaments = tournamentService.getTournamentsByStatus(status);
-        var tournamentData = tournaments.stream()
-                .map(this::convertToMap)
-                .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(tournamentData);
+        try {
+            List<Tournament> tournaments = tournamentService.getTournamentsByStatus(status);
+            List<Map<String, Object>> tournamentData = tournaments.stream()
+                    .map(this::convertToMap)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(tournamentData);
+        } catch (Exception e) {
+            log.error("Ошибка при получении турниров со статусом: {}", status, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении турниров: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Получение предстоящих турниров
+     */
     @GetMapping("/upcoming")
     public ResponseEntity<?> getUpcomingTournaments() {
         try {
             log.info("Получен запрос на получение предстоящих турниров");
             
-            List<Map<String, Object>> hardcodedTournaments = new ArrayList<>();
+            List<Tournament> upcomingTournaments = tournamentService.getUpcomingTournaments();
             
-            // Создаем фиксированные данные турниров
-            Map<String, Object> tournament1 = new HashMap<>();
-            tournament1.put("id", 1L);
-            tournament1.put("name", "Весенний Кубок FIBA 2025");
-            tournament1.put("title", "Весенний Кубок FIBA 2025");
-            tournament1.put("date", "2025-05-15T10:00:00");
-            tournament1.put("location", "Москва, СК \"Олимпийский\"");
-            tournament1.put("level", "Профессиональный");
-            tournament1.put("prize_pool", 1000000);
-            tournament1.put("status", "registration");
-            tournament1.put("sponsor_name", "Adidas");
-            tournament1.put("sponsor_logo", "/uploads/sponsors/adidas.jpg");
-            tournament1.put("image_url", "/uploads/sponsors/adidas.jpg");
-            tournament1.put("business_type", "Спортивные товары");
-            tournament1.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament1);
+            List<Map<String, Object>> result = upcomingTournaments.stream()
+                    .map(this::convertToMap)
+                    .collect(Collectors.toList());
             
-            Map<String, Object> tournament2 = new HashMap<>();
-            tournament2.put("id", 2L);
-            tournament2.put("name", "Любительский турнир 3x3");
-            tournament2.put("title", "Любительский турнир 3x3");
-            tournament2.put("date", "2025-06-10T12:00:00");
-            tournament2.put("location", "Санкт-Петербург, Площадь Спорта");
-            tournament2.put("level", "Любительский");
-            tournament2.put("prize_pool", 250000);
-            tournament2.put("status", "registration");
-            tournament2.put("sponsor_name", "Nike");
-            tournament2.put("sponsor_logo", "/uploads/sponsors/nike.jpg");
-            tournament2.put("image_url", "/uploads/sponsors/nike.jpg");
-            tournament2.put("business_type", "Спортивные товары");
-            tournament2.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament2);
-            
-            log.info("Возвращается {} предстоящих турниров", hardcodedTournaments.size());
-            return ResponseEntity.ok(hardcodedTournaments);
+            log.info("Возвращается {} предстоящих турниров", result.size());
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Ошибка при получении предстоящих турниров", e);
-            return ResponseEntity.ok(new ArrayList<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении предстоящих турниров: " + e.getMessage()));
         }
     }
 
+    /**
+     * Получение прошедших турниров
+     */
     @GetMapping("/past")
     public ResponseEntity<?> getPastTournaments() {
         try {
             log.info("Получен запрос на получение прошедших турниров");
             
-            List<Map<String, Object>> hardcodedTournaments = new ArrayList<>();
+            List<Tournament> pastTournaments = tournamentService.getCompletedTournaments();
             
-            // Создаем фиксированные данные турниров
-            Map<String, Object> tournament1 = new HashMap<>();
-            tournament1.put("id", 5L);
-            tournament1.put("name", "Зимний турнир 2024");
-            tournament1.put("title", "Зимний турнир 2024");
-            tournament1.put("date", "2024-12-05T15:00:00");
-            tournament1.put("location", "Москва, ЦСКА Арена");
-            tournament1.put("level", "Профессиональный");
-            tournament1.put("prize_pool", 800000);
-            tournament1.put("status", "completed");
-            tournament1.put("image_url", "/uploads/sponsors/past1.jpg");
-            tournament1.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament1);
+            List<Map<String, Object>> result = pastTournaments.stream()
+                    .map(this::convertToMap)
+                    .collect(Collectors.toList());
             
-            Map<String, Object> tournament2 = new HashMap<>();
-            tournament2.put("id", 6L);
-            tournament2.put("name", "Осенний Кубок 2024");
-            tournament2.put("title", "Осенний Кубок 2024");
-            tournament2.put("date", "2024-10-18T12:00:00");
-            tournament2.put("location", "Санкт-Петербург, Арена");
-            tournament2.put("level", "Профессиональный");
-            tournament2.put("prize_pool", 600000);
-            tournament2.put("status", "completed");
-            tournament2.put("image_url", "/uploads/sponsors/past2.jpg");
-            tournament2.put("registrations", new ArrayList<>());
-            hardcodedTournaments.add(tournament2);
-            
-            log.info("Возвращается {} прошедших турниров", hardcodedTournaments.size());
-            return ResponseEntity.ok(hardcodedTournaments);
+            log.info("Возвращается {} прошедших турниров", result.size());
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Ошибка при получении прошедших турниров", e);
-            return ResponseEntity.ok(new ArrayList<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении прошедших турниров: " + e.getMessage()));
         }
     }
 
+    /**
+     * Поиск турниров по запросу
+     */
     @GetMapping("/search")
     public ResponseEntity<?> searchTournaments(@RequestParam String query) {
-        var tournaments = tournamentService.searchTournaments(query);
-        var tournamentData = tournaments.stream()
-                .map(this::convertToMap)
-                .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(tournamentData);
+        try {
+            List<Tournament> tournaments = tournamentService.searchTournaments(query);
+            List<Map<String, Object>> tournamentData = tournaments.stream()
+                    .map(this::convertToMap)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(tournamentData);
+        } catch (Exception e) {
+            log.error("Ошибка при поиске турниров по запросу: {}", query, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при поиске турниров: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Получение турниров по уровню
+     */
     @GetMapping("/level/{level}")
     public ResponseEntity<?> getTournamentsByLevel(@PathVariable String level) {
-        var tournaments = tournamentService.getTournamentsByLevel(level);
-        var tournamentData = tournaments.stream()
-                .map(this::convertToMap)
-                .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(tournamentData);
+        try {
+            List<Tournament> tournaments = tournamentService.getTournamentsByLevel(level);
+            List<Map<String, Object>> tournamentData = tournaments.stream()
+                    .map(this::convertToMap)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(tournamentData);
+        } catch (Exception e) {
+            log.error("Ошибка при получении турниров по уровню: {}", level, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении турниров: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Создание нового турнира (только для администраторов)
+     */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createTournament(
@@ -286,7 +242,20 @@ public class TournamentController {
         try {
             log.info("Получен запрос на создание турнира: {}, {}, {}, {}", title, dateStr, location, level);
             
-            LocalDate date = LocalDate.parse(dateStr);
+            LocalDate date;
+            try {
+                // Пробуем разные форматы дат
+                if (dateStr.contains("T")) {
+                    // Формат ISO с временем
+                    date = LocalDateTime.parse(dateStr).toLocalDate();
+                } else {
+                    // Стандартный формат LocalDate
+                    date = LocalDate.parse(dateStr);
+                }
+            } catch (Exception e) {
+                log.error("Ошибка при парсинге даты: {}", dateStr, e);
+                return ResponseEntity.badRequest().body(Map.of("error", "Неверный формат даты. Используйте формат YYYY-MM-DD"));
+            }
             
             // Сохраняем изображение турнира, если оно было загружено
             String imageUrl = null;
@@ -304,12 +273,13 @@ public class TournamentController {
                     .prizePool(String.valueOf(prizePool))
                     .status(TournamentStatus.UPCOMING)
                     .imageUrl(imageUrl)
+                    .registrationOpen(true) // По умолчанию регистрация открыта
                     .build();
             
             Tournament createdTournament = tournamentService.createTournament(tournament);
             log.info("Турнир успешно создан с ID: {}", createdTournament.getId());
             
-            return ResponseEntity.ok(convertToMap(createdTournament));
+            return ResponseEntity.status(HttpStatus.CREATED).body(convertToMap(createdTournament));
         } catch (Exception e) {
             log.error("Ошибка при создании турнира", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -317,6 +287,9 @@ public class TournamentController {
         }
     }
 
+    /**
+     * Создание бизнес-турнира (для администраторов и бизнес-пользователей)
+     */
     @PostMapping("/business")
     @PreAuthorize("hasRole('ADMIN') or hasRole('BUSINESS')")
     public ResponseEntity<?> createBusinessTournament(
@@ -333,7 +306,20 @@ public class TournamentController {
         try {
             log.info("Получен запрос на создание бизнес-турнира: {}, {}, {}, {}", title, dateStr, location, level);
             
-            LocalDate date = LocalDate.parse(dateStr);
+            LocalDate date;
+            try {
+                // Пробуем разные форматы дат
+                if (dateStr.contains("T")) {
+                    // Формат ISO с временем
+                    date = LocalDateTime.parse(dateStr).toLocalDate();
+                } else {
+                    // Стандартный формат LocalDate
+                    date = LocalDate.parse(dateStr);
+                }
+            } catch (Exception e) {
+                log.error("Ошибка при парсинге даты: {}", dateStr, e);
+                return ResponseEntity.badRequest().body(Map.of("error", "Неверный формат даты. Используйте формат YYYY-MM-DD"));
+            }
             
             // Сохраняем изображение турнира, если оно было загружено
             String imageUrl = null;
@@ -362,12 +348,13 @@ public class TournamentController {
                     .sponsorLogo(sponsorLogoUrl)
                     .businessType(businessType)
                     .isBusinessTournament(true)
+                    .registrationOpen(true) // По умолчанию регистрация открыта
                     .build();
             
             Tournament createdTournament = tournamentService.createTournament(tournament);
             log.info("Бизнес-турнир успешно создан с ID: {}", createdTournament.getId());
             
-            return ResponseEntity.ok(convertToMap(createdTournament));
+            return ResponseEntity.status(HttpStatus.CREATED).body(convertToMap(createdTournament));
         } catch (Exception e) {
             log.error("Ошибка при создании бизнес-турнира", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -375,148 +362,244 @@ public class TournamentController {
         }
     }
 
+    /**
+     * Обновление существующего турнира (только для администраторов)
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateTournament(@PathVariable Long id, @RequestBody Map<String, Object> tournamentData) {
-        Tournament existingTournament = tournamentService.getTournamentById(id);
-        
-        // Используем Optional для безопасного обновления полей
-        Optional.ofNullable(tournamentData.get("title"))
-            .map(String.class::cast)
-            .ifPresent(existingTournament::setName);
-        
-        Optional.ofNullable(tournamentData.get("date"))
-            .map(String.class::cast)
-            .map(LocalDate::parse)
-            .ifPresent(existingTournament::setDate);
-        
-        Optional.ofNullable(tournamentData.get("location"))
-            .map(String.class::cast)
-            .ifPresent(existingTournament::setLocation);
-        
-        Optional.ofNullable(tournamentData.get("level"))
-            .map(String.class::cast)
-            .ifPresent(existingTournament::setLevel);
-        
-        Optional.ofNullable(tournamentData.get("prize_pool"))
-            .map(Object::toString)
-            .map(String::valueOf)
-            .ifPresent(existingTournament::setPrizePool);
-        
-        Optional.ofNullable(tournamentData.get("status"))
-            .map(String.class::cast)
-            .map(TournamentStatus::valueOf)
-            .ifPresent(existingTournament::setStatus);
-        
-        // Обработка полей бизнес-турнира
-        Optional.ofNullable(tournamentData.get("sponsor_name"))
-            .map(String.class::cast)
-            .ifPresent(existingTournament::setSponsorName);
-        
-        Optional.ofNullable(tournamentData.get("sponsor_logo"))
-            .map(String.class::cast)
-            .ifPresent(existingTournament::setSponsorLogo);
-        
-        Optional.ofNullable(tournamentData.get("business_type"))
-            .map(String.class::cast)
-            .ifPresent(existingTournament::setBusinessType);
-        
-        Tournament updatedTournament = tournamentService.updateTournament(existingTournament);
-        return ResponseEntity.ok(convertToMap(updatedTournament));
+        try {
+            Tournament existingTournament = tournamentService.getTournamentById(id);
+            
+            // Используем Optional для безопасного обновления полей
+            Optional.ofNullable(tournamentData.get("title"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setName);
+            
+            // Безопасное обновление даты с поддержкой разных форматов
+            Optional.ofNullable(tournamentData.get("date"))
+                .map(Object::toString)
+                .ifPresent(dateStr -> {
+                    try {
+                        LocalDate date;
+                        if (dateStr.contains("T")) {
+                            // Формат ISO с временем
+                            date = LocalDateTime.parse(dateStr).toLocalDate();
+                        } else {
+                            // Стандартный формат LocalDate
+                            date = LocalDate.parse(dateStr);
+                        }
+                        existingTournament.setDate(date);
+                    } catch (Exception e) {
+                        log.error("Ошибка при парсинге даты: {}", dateStr, e);
+                        // В данном случае просто логируем ошибку и не обновляем поле
+                    }
+                });
+            
+            Optional.ofNullable(tournamentData.get("location"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setLocation);
+            
+            Optional.ofNullable(tournamentData.get("level"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setLevel);
+            
+            Optional.ofNullable(tournamentData.get("prize_pool"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setPrizePool);
+            
+            Optional.ofNullable(tournamentData.get("status"))
+                .map(Object::toString)
+                .map(status -> {
+                    try {
+                        return TournamentStatus.valueOf(status.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        log.error("Неверный статус турнира: {}", status, e);
+                        return null;
+                    }
+                })
+                .ifPresent(existingTournament::setStatus);
+            
+            Optional.ofNullable(tournamentData.get("registration_open"))
+                .map(value -> Boolean.valueOf(value.toString()))
+                .ifPresent(existingTournament::setRegistrationOpen);
+            
+            // Обработка полей бизнес-турнира
+            Optional.ofNullable(tournamentData.get("sponsor_name"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setSponsorName);
+            
+            Optional.ofNullable(tournamentData.get("sponsor_logo"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setSponsorLogo);
+            
+            Optional.ofNullable(tournamentData.get("business_type"))
+                .map(Object::toString)
+                .ifPresent(existingTournament::setBusinessType);
+            
+            Tournament updatedTournament = tournamentService.updateTournament(existingTournament);
+            return ResponseEntity.ok(convertToMap(updatedTournament));
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении турнира с ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Не удалось обновить турнир: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Удаление турнира (только для администраторов)
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteTournament(@PathVariable Long id) {
-        tournamentService.deleteTournament(id);
-        return ResponseEntity.ok().body(Map.of("message", "Турнир успешно удален"));
+        try {
+            tournamentService.deleteTournament(id);
+            return ResponseEntity.ok().body(Map.of("message", "Турнир успешно удален"));
+        } catch (Exception e) {
+            log.error("Ошибка при удалении турнира с ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Не удалось удалить турнир: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Регистрация команды на турнир
+     */
     @PostMapping("/{id}/register")
     public ResponseEntity<?> registerTeamForTournament(
             @PathVariable("id") Long tournamentId,
             @RequestBody Map<String, Object> registrationData,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        // Получаем текущего пользователя как капитана
-        User captain = userService.getUserByEmail(userDetails.getUsername());
-        
-        // Получаем турнир
-        Tournament tournament = tournamentService.getTournamentById(tournamentId);
-        
-        // Проверяем, что регистрация на турнир открыта и турнир предстоящий
-        if (!tournament.isRegistrationOpen() || !"UPCOMING".equals(tournament.getStatus())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Регистрация на этот турнир закрыта"));
+        try {
+            if (userDetails == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Для регистрации команды необходимо авторизоваться"));
+            }
+            
+            // Получаем текущего пользователя как капитана
+            User captain = userService.getUserByEmail(userDetails.getUsername());
+            
+            // Получаем турнир
+            Tournament tournament = tournamentService.getTournamentById(tournamentId);
+            
+            // Проверяем, что регистрация на турнир открыта
+            if (tournament.getRegistrationOpen() != null && !tournament.getRegistrationOpen()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Регистрация на этот турнир закрыта"));
+            }
+            
+            // Проверяем статус турнира
+            String status = tournament.getStatus() != null ? tournament.getStatus().toString() : "";
+            if (!"UPCOMING".equals(status) && !"REGISTRATION".equals(status)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Регистрация на этот турнир закрыта"));
+            }
+            
+            // Проверяем название команды
+            String teamName = (String) registrationData.get("teamName");
+            if (teamName == null || teamName.trim().length() < 3) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Название команды должно содержать минимум 3 символа"));
+            }
+            
+            // Обрабатываем список игроков
+            Object playerIdsObj = registrationData.get("playerIds");
+            List<String> playerIds;
+            
+            if (playerIdsObj instanceof List) {
+                playerIds = ((List<?>) playerIdsObj).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList());
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Неверный формат списка игроков"));
+            }
+            
+            if (playerIds == null || playerIds.isEmpty() || playerIds.size() < 3) {
+                return ResponseEntity.badRequest().body(Map.of("error", "В команде должно быть минимум 3 игрока"));
+            }
+            
+            // Преобразуем строковые ID в Long
+            List<Long> playerLongIds;
+            try {
+                playerLongIds = playerIds.stream()
+                    .map(Long::valueOf)
+                    .collect(Collectors.toList());
+            } catch (NumberFormatException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Некорректные ID игроков"));
+            }
+            
+            // Получаем игроков из базы данных
+            List<User> players = userService.getUsersByIds(playerLongIds);
+            
+            // Проверяем, что все игроки найдены
+            if (players.size() != playerLongIds.size()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Некоторые игроки не найдены"));
+            }
+            
+            // Создаем регистрацию
+            Registration registration = Registration.builder()
+                    .teamName(teamName)
+                    .tournament(tournament)
+                    .captain(captain)
+                    .status("pending")
+                    .players(players)
+                    .build();
+            
+            // Сохраняем регистрацию
+            Registration createdRegistration = registrationService.createRegistration(registration);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", createdRegistration.getId(),
+                "teamName", createdRegistration.getTeamName(),
+                "status", createdRegistration.getStatus(),
+                "message", "Команда успешно зарегистрирована на турнир"
+            ));
+        } catch (Exception e) {
+            log.error("Ошибка при регистрации команды", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Не удалось зарегистрировать команду: " + e.getMessage()));
         }
-        
-        // Проверяем название команды
-        String teamName = (String) registrationData.get("teamName");
-        if (teamName == null || teamName.trim().length() < 3) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Название команды должно содержать минимум 3 символа"));
-        }
-        
-        // Обрабатываем список игроков
-        List<String> playerIds = (List<String>) registrationData.get("playerIds");
-        if (playerIds == null || playerIds.isEmpty() || playerIds.size() < 3) {
-            return ResponseEntity.badRequest().body(Map.of("error", "В команде должно быть минимум 3 игрока"));
-        }
-        
-        // Преобразуем строковые ID в Long
-        List<Long> playerLongIds = playerIds.stream()
-                .map(Long::valueOf)
-                .collect(Collectors.toList());
-        
-        // Получаем игроков из базы данных
-        List<User> players = userService.getUsersByIds(playerLongIds);
-        
-        // Создаем регистрацию
-        Registration registration = Registration.builder()
-                .teamName(teamName)
-                .tournament(tournament)
-                .captain(captain)
-                .status("pending")
-                .players(players)
-                .build();
-        
-        // Сохраняем регистрацию
-        Registration createdRegistration = registrationService.createRegistration(registration);
-        
-        return ResponseEntity.ok(Map.of(
-            "id", createdRegistration.getId(),
-            "teamName", createdRegistration.getTeamName(),
-            "status", createdRegistration.getStatus(),
-            "message", "Команда успешно зарегистрирована на турнир"
-        ));
     }
 
+    /**
+     * Обновление данных матча турнира
+     */
     @RequestMapping(
             value = "/{tournamentId}/matches/{matchId}", 
             method = RequestMethod.PUT, 
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateMatch(
             @PathVariable Long tournamentId,
             @PathVariable String matchId,
             @RequestBody Map<String, Object> matchData) {
         
-        // Проверяем существование турнира
-        Tournament tournament = tournamentService.getTournamentById(tournamentId);
-        
-        // Обработка обновления матча
-        // В реальной реализации здесь была бы логика обновления данных матча в БД
-        // Для демо просто возвращаем обновленные данные
-        Map<String, Object> updatedMatch = new HashMap<>();
-        updatedMatch.put("id", matchId);
-        updatedMatch.put("tournamentId", tournamentId);
-        updatedMatch.put("score1", matchData.get("score1"));
-        updatedMatch.put("score2", matchData.get("score2"));
-        updatedMatch.put("isCompleted", matchData.get("isCompleted"));
-        updatedMatch.put("updatedAt", LocalDateTime.now().toString());
-        
-        return ResponseEntity.ok(updatedMatch);
+        try {
+            // Проверяем существование турнира
+            Tournament tournament = tournamentService.getTournamentById(tournamentId);
+            
+            // В реальной реализации здесь была бы логика обновления данных матча в БД
+            // TODO: Реализовать обработку обновления матча через специальный сервис
+            
+            Map<String, Object> updatedMatch = new HashMap<>();
+            updatedMatch.put("id", matchId);
+            updatedMatch.put("tournamentId", tournamentId);
+            updatedMatch.put("score1", matchData.get("score1"));
+            updatedMatch.put("score2", matchData.get("score2"));
+            updatedMatch.put("isCompleted", matchData.get("isCompleted"));
+            updatedMatch.put("updatedAt", LocalDateTime.now().toString());
+            
+            return ResponseEntity.ok(updatedMatch);
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении матча", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Не удалось обновить матч: " + e.getMessage()));
+        }
     }
 
+    /**
+     * Тестовый метод для проверки работы контроллера
+     */
     @GetMapping("/test")
     public ResponseEntity<?> testEndpoint() {
         log.info("Вызван тестовый эндпоинт /tournaments/test");
@@ -539,6 +622,9 @@ public class TournamentController {
         return ResponseEntity.ok(testData);
     }
 
+    /**
+     * Преобразование объекта Tournament в Map для возврата клиенту
+     */
     private Map<String, Object> convertToMap(Tournament tournament) {
         Map<String, Object> result = new HashMap<>();
         result.put("id", tournament.getId());
@@ -548,7 +634,7 @@ public class TournamentController {
         result.put("location", tournament.getLocation());
         result.put("level", tournament.getLevel());
         result.put("prize_pool", tournament.getPrizePool());
-        result.put("status", tournament.getStatus());
+        result.put("status", tournament.getStatus() != null ? tournament.getStatus().toString() : null);
         result.put("registration_open", tournament.getRegistrationOpen());
         
         // Добавляем URL изображения, если оно есть
