@@ -76,7 +76,8 @@ public class Tournament {
     @Column(length = 1000)
     private String rules;
 
-    private Boolean registrationOpen;
+    @Builder.Default
+    private Boolean registrationOpen = true;
 
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
