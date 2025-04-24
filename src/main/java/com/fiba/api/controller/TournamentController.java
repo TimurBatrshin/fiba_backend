@@ -1,9 +1,13 @@
 package com.fiba.api.controller;
 
 import com.fiba.api.model.Registration;
+import com.fiba.api.model.Team;
 import com.fiba.api.model.Tournament;
 import com.fiba.api.model.TournamentStatus;
+import com.fiba.api.model.TournamentTeam;
 import com.fiba.api.model.User;
+import com.fiba.api.model.TeamStatus;
+import com.fiba.api.model.Player;
 import com.fiba.api.service.RegistrationService;
 import com.fiba.api.service.TournamentService;
 import com.fiba.api.service.UserService;
@@ -620,6 +624,64 @@ public class TournamentController {
         testData.add(testTournament);
         
         return ResponseEntity.ok(testData);
+    }
+
+    /**
+     * Получение списка команд, зарегистрированных на турнир
+     */
+    @GetMapping("/{id}/teams")
+    public ResponseEntity<?> getTournamentTeams(@PathVariable Long id) {
+        try {
+            log.info("Получен запрос на получение команд для турнира с ID: {}", id);
+            
+            Tournament tournament = tournamentService.getTournamentWithTeams(id);
+            
+            if (tournament.getTeams() == null || tournament.getTeams().isEmpty()) {
+                log.info("Команды для турнира с ID: {} не найдены", id);
+                return ResponseEntity.ok(new ArrayList<>());
+            }
+            
+            List<Map<String, Object>> result = tournament.getTeams().stream()
+                .map(tournamentTeam -> {
+                    Map<String, Object> teamMap = new HashMap<>();
+                    Team team = tournamentTeam.getTeam();
+                    
+                    teamMap.put("id", team.getId());
+                    teamMap.put("name", team.getName());
+                    teamMap.put("logo", team.getLogo());
+                    teamMap.put("status", tournamentTeam.getStatus().toString());
+                    teamMap.put("position", tournamentTeam.getPosition());
+                    teamMap.put("registration_date", tournamentTeam.getRegistrationDate());
+                    
+                    // Добавляем информацию об игроках команды
+                    if (team.getPlayers() != null && !team.getPlayers().isEmpty()) {
+                        List<Map<String, Object>> playersList = team.getPlayers().stream()
+                            .map(player -> {
+                                Map<String, Object> playerMap = new HashMap<>();
+                                playerMap.put("id", player.getId());
+                                playerMap.put("name", player.getName());
+                                playerMap.put("photo", player.getPhotoUrl());
+                                return playerMap;
+                            })
+                            .collect(Collectors.toList());
+                        
+                        teamMap.put("players", playersList);
+                    } else {
+                        teamMap.put("players", new ArrayList<>());
+                    }
+                    
+                    return teamMap;
+                })
+                .collect(Collectors.toList());
+            
+            log.info("Возвращается {} команд для турнира с ID: {}", result.size(), id);
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Ошибка при получении команд для турнира с ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении команд турнира: " + e.getMessage()));
+        }
     }
 
     /**

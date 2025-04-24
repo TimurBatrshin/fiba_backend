@@ -2,8 +2,10 @@ package com.fiba.api.service;
 
 import com.fiba.api.dto.TournamentRequest;
 import com.fiba.api.exception.ResourceNotFoundException;
+import com.fiba.api.model.Team;
 import com.fiba.api.model.Tournament;
 import com.fiba.api.model.TournamentStatus;
+import com.fiba.api.model.TournamentTeam;
 import com.fiba.api.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -305,5 +307,37 @@ public class TournamentService {
         
         return tournamentRepository.findByIdWithRegistrations(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tournament not found with id: " + id));
+    }
+
+    /**
+     * Получение турнира вместе с командами и их игроками
+     *
+     * @param id идентификатор турнира
+     * @return турнир со связанными командами и игроками
+     * @throws ResourceNotFoundException если турнир не найден
+     */
+    @Transactional
+    public Tournament getTournamentWithTeams(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Tournament ID cannot be null");
+        }
+        
+        Tournament tournament = tournamentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tournament not found with id: " + id));
+        
+        // Инициализируем коллекцию команд, если она не null
+        if (tournament.getTeams() != null) {
+            tournament.getTeams().size(); // Инициализация коллекции
+            
+            // Инициализируем связанные команды и их игроков
+            for (TournamentTeam tournamentTeam : tournament.getTeams()) {
+                Team team = tournamentTeam.getTeam();
+                if (team != null && team.getPlayers() != null) {
+                    team.getPlayers().size(); // Инициализация коллекции игроков
+                }
+            }
+        }
+        
+        return tournament;
     }
 }
