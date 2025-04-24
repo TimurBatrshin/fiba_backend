@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(FileStorageService.class);
+    private Path rootLocation;
     
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
@@ -30,78 +31,41 @@ public class FileStorageService {
     @PostConstruct
     public void init() {
         try {
-            log.info("Инициализация FileStorageService...");
+            log.info("Initializing FileStorageService...");
+            
+            // Convert to absolute path and normalize
+            rootLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
+            log.info("Root upload directory: {}", rootLocation);
+            
             // Создаем основную директорию загрузки, если она не существует
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-                log.info("Создана базовая директория для загрузки файлов: {}", uploadPath);
+            if (!Files.exists(rootLocation)) {
+                Files.createDirectories(rootLocation);
+                log.info("Created base upload directory: {}", rootLocation);
             } else {
-                log.info("Базовая директория для загрузки файлов уже существует: {}", uploadPath);
+                log.info("Base upload directory already exists: {}", rootLocation);
             }
             
             // Создаем поддиректории для разных типов файлов
             String[] subdirs = {"tournaments", "sponsors", "ads", "profiles", "avatars"};
             for (String subdir : subdirs) {
-                Path subdirPath = Paths.get(uploadDir, subdir);
+                Path subdirPath = rootLocation.resolve(subdir);
                 if (!Files.exists(subdirPath)) {
                     Files.createDirectories(subdirPath);
-                    log.info("Создана поддиректория: {}", subdirPath);
+                    log.info("Created subdirectory: {}", subdirPath);
                 } else {
-                    log.info("Поддиректория уже существует: {}", subdirPath);
+                    log.info("Subdirectory already exists: {}", subdirPath);
                 }
             }
-            log.info("FileStorageService инициализирован успешно");
+            log.info("FileStorageService initialized successfully");
         } catch (IOException e) {
-            log.error("Ошибка при инициализации FileStorageService", e);
-            // Не выбрасываем исключение, чтобы не блокировать запуск приложения
+            String msg = "Could not initialize storage location: " + e.getMessage();
+            log.error(msg, e);
+            throw new RuntimeException(msg, e);
         } catch (Exception e) {
-            log.error("Неожиданная ошибка при инициализации FileStorageService", e);
+            String msg = "Unexpected error initializing storage: " + e.getMessage();
+            log.error(msg, e);
+            throw new RuntimeException(msg, e);
         }
-    }
-    
-    /**
-     * Сохраняет загруженный файл в директории для изображений турниров
-     *
-     * @param file Загруженный файл
-     * @return Путь к сохраненному файлу относительно корня приложения
-     * @throws IOException Если произошла ошибка при сохранении файла
-     */
-    public String storeTournamentImage(MultipartFile file) throws IOException {
-        return storeFile(file, "tournaments");
-    }
-    
-    /**
-     * Сохраняет загруженный файл в директории для логотипов спонсоров
-     *
-     * @param file Загруженный файл
-     * @return Путь к сохраненному файлу относительно корня приложения
-     * @throws IOException Если произошла ошибка при сохранении файла
-     */
-    public String storeSponsorLogo(MultipartFile file) throws IOException {
-        return storeFile(file, "sponsors");
-    }
-    
-    /**
-     * Сохраняет загруженный файл в директории для изображений рекламы
-     *
-     * @param file Загруженный файл
-     * @return Путь к сохраненному файлу относительно корня приложения
-     * @throws IOException Если произошла ошибка при сохранении файла
-     */
-    public String storeFile(MultipartFile file) throws IOException {
-        return storeFile(file, "ads");
-    }
-    
-    /**
-     * Сохраняет загруженный файл как фотографию профиля
-     *
-     * @param file Загруженный файл
-     * @return Путь к сохраненному файлу относительно корня приложения
-     * @throws IOException Если произошла ошибка при сохранении файла
-     */
-    public String storeProfilePhoto(MultipartFile file) throws IOException {
-        return storeFile(file, "profiles");
     }
     
     /**
@@ -114,20 +78,21 @@ public class FileStorageService {
      */
     private String storeFile(MultipartFile file, String subdirectory) throws IOException {
         if (file == null || file.isEmpty()) {
-            log.warn("Попытка сохранить пустой файл в директории {}", subdirectory);
-            return null;
+            log.warn("Attempt to save empty file in directory {}", subdirectory);
+            throw new IllegalArgumentException("Failed to store empty file");
         }
         
         try {
             // Получаем имя файла
             String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-            log.info("Обработка файла: {}, размер: {} байт, тип: {}, директория: {}",
+            log.info("Processing file: {}, size: {} bytes, type: {}, directory: {}",
                      originalFilename, file.getSize(), file.getContentType(), subdirectory);
             
             // Проверяем имя файла на недопустимые символы
             if (originalFilename.contains("..")) {
-                log.error("Имя файла содержит недопустимые символы: {}", originalFilename);
-                throw new IOException("Имя файла содержит недопустимые символы: " + originalFilename);
+                String msg = "Filename contains invalid path sequence: " + originalFilename;
+                log.error(msg);
+                throw new IllegalArgumentException(msg);
             }
             
             // Генерируем уникальное имя файла, сохраняя расширение
@@ -136,32 +101,62 @@ public class FileStorageService {
                 fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
             String newFilename = UUID.randomUUID().toString() + fileExtension;
-            log.debug("Сгенерировано новое имя файла: {}", newFilename);
+            log.debug("Generated new filename: {}", newFilename);
             
-            // Создаем директорию для сохранения файла
-            Path uploadPath = Paths.get(uploadDir, subdirectory);
+            // Get subdirectory path
+            Path uploadPath = rootLocation.resolve(subdirectory);
             if (!Files.exists(uploadPath)) {
-                log.info("Директория {} не существует, создаем...", uploadPath);
+                log.info("Directory {} does not exist, creating...", uploadPath);
                 Files.createDirectories(uploadPath);
-                log.info("Создана директория: {}", uploadPath);
+                log.info("Created directory: {}", uploadPath);
             }
             
             // Сохраняем файл
             Path targetLocation = uploadPath.resolve(newFilename);
-            log.debug("Копирование файла в: {}", targetLocation);
+            log.debug("Copying file to: {}", targetLocation);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Файл успешно сохранен: {}", targetLocation);
+            log.info("File saved successfully: {}", targetLocation);
             
-            // Возвращаем относительный путь к файлу для хранения в БД
-            String filePath = "/" + uploadDir + "/" + subdirectory + "/" + newFilename;
-            log.info("Возвращаемый путь к файлу: {}", filePath);
+            // Return relative URL path for the file
+            String filePath = "/uploads/" + subdirectory + "/" + newFilename;
+            log.info("Returning file URL path: {}", filePath);
             return filePath;
         } catch (IOException e) {
-            log.error("Ошибка при сохранении файла в {}: {}", subdirectory, e.getMessage(), e);
-            throw e;
+            String msg = String.format("Failed to store file in %s: %s", subdirectory, e.getMessage());
+            log.error(msg, e);
+            throw new IOException(msg, e);
         } catch (Exception e) {
-            log.error("Неожиданная ошибка при сохранении файла в {}: {}", subdirectory, e.getMessage(), e);
-            throw new IOException("Неожиданная ошибка при сохранении файла: " + e.getMessage(), e);
+            String msg = String.format("Unexpected error storing file in %s: %s", subdirectory, e.getMessage());
+            log.error(msg, e);
+            throw new IOException(msg, e);
         }
+    }
+    
+    /**
+     * Сохраняет загруженный файл в директории для изображений турниров
+     */
+    public String storeTournamentImage(MultipartFile file) throws IOException {
+        return storeFile(file, "tournaments");
+    }
+    
+    /**
+     * Сохраняет загруженный файл в директории для логотипов спонсоров
+     */
+    public String storeSponsorLogo(MultipartFile file) throws IOException {
+        return storeFile(file, "sponsors");
+    }
+    
+    /**
+     * Сохраняет загруженный файл в директории для изображений рекламы
+     */
+    public String storeFile(MultipartFile file) throws IOException {
+        return storeFile(file, "ads");
+    }
+    
+    /**
+     * Сохраняет загруженный файл как фотографию профиля
+     */
+    public String storeProfilePhoto(MultipartFile file) throws IOException {
+        return storeFile(file, "profiles");
     }
 }
