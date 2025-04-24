@@ -173,34 +173,15 @@ public class ProfileController {
     @PostMapping(value = "/profile/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProfilePhotoById(
             @PathVariable Long id,
-            @RequestParam(value = "photo", required = false) MultipartFile photoParam,
-            @RequestPart(value = "file", required = false) MultipartFile fileParam) {
+            @RequestParam(value = "photo", required = false) MultipartFile photo) {
         
         try {
             log.info("Получен запрос на загрузку фото для профиля с ID: {}", id);
-            
-            // Определяем, какой параметр использовать
-            MultipartFile photo = photoParam != null ? photoParam : fileParam;
             
             // Проверяем файл
             if (photo == null || photo.isEmpty()) {
                 log.error("Файл не был передан или пустой");
                 // Проверка наличия файлов в запросе
-                Map<String, MultipartFile> files = new HashMap<>();
-                try {
-                    HttpServletRequest request = (HttpServletRequest)
-                            RequestContextHolder.currentRequestAttributes().resolveReference("request");
-
-                    Map<String, MultipartFile> fileMap = Map.of();
-
-                    if (request instanceof MultipartHttpServletRequest multipartRequest) {
-                        // Получаем карту файлов (по одному файлу на ключ)
-                        fileMap = multipartRequest.getFileMap();
-                    }
-                    log.info("Параметры запроса: {}", fileMap.keySet());
-                } catch (Exception e) {
-                    log.error("Ошибка при получении файлов из запроса: {}", e.getMessage());
-                }
                 
                 return ResponseEntity.badRequest().body(Map.of(
                     "error", "Файл не был передан или пустой", 
