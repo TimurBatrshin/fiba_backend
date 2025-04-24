@@ -5,6 +5,7 @@ import com.fiba.api.model.User;
 import com.fiba.api.service.FileStorageService;
 import com.fiba.api.service.ProfileService;
 import com.fiba.api.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,8 +14,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -184,12 +188,15 @@ public class ProfileController {
                 // Проверка наличия файлов в запросе
                 Map<String, MultipartFile> files = new HashMap<>();
                 try {
-                    // Попытка получить все файлы из запроса
-                    Map<String, MultipartFile[]> fileMap = ((jakarta.servlet.http.HttpServletRequest) 
-                            org.springframework.web.context.request.RequestContextHolder
-                            .currentRequestAttributes()
-                            .resolveReference("request"))
-                            .getParameterMap();
+                    HttpServletRequest request = (HttpServletRequest)
+                            RequestContextHolder.currentRequestAttributes().resolveReference("request");
+
+                    Map<String, MultipartFile> fileMap = Map.of();
+
+                    if (request instanceof MultipartHttpServletRequest multipartRequest) {
+                        // Получаем карту файлов (по одному файлу на ключ)
+                        fileMap = multipartRequest.getFileMap();
+                    }
                     log.info("Параметры запроса: {}", fileMap.keySet());
                 } catch (Exception e) {
                     log.error("Ошибка при получении файлов из запроса: {}", e.getMessage());
