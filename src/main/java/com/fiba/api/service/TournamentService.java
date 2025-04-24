@@ -340,4 +340,30 @@ public class TournamentService {
         
         return tournament;
     }
+
+    /**
+     * Сохранение связи турнира с командой
+     *
+     * @param tournamentTeam связь турнира с командой
+     * @return сохраненная связь
+     */
+    @Transactional
+    public TournamentTeam saveTournamentTeam(TournamentTeam tournamentTeam) {
+        if (tournamentTeam == null) {
+            throw new IllegalArgumentException("TournamentTeam cannot be null");
+        }
+        
+        // Для простоты используем репозиторий турнира и сохраняем весь турнир с изменениями.
+        // В реальном приложении лучше использовать специальный репозиторий для TournamentTeam.
+        Tournament tournament = tournamentTeam.getTournament();
+        if (tournament != null && tournament.getId() != null) {
+            return tournamentRepository.save(tournament)
+                    .getTeams().stream()
+                    .filter(tt -> tt.getTeam().getId().equals(tournamentTeam.getTeam().getId()))
+                    .findFirst()
+                    .orElse(tournamentTeam);
+        } else {
+            throw new IllegalArgumentException("Tournament must be set and have an ID");
+        }
+    }
 }

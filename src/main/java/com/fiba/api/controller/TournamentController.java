@@ -685,6 +685,112 @@ public class TournamentController {
     }
 
     /**
+     * Подтверждение участия команды в турнире
+     */
+    @PostMapping("/{tournamentId}/teams/{teamId}/confirm")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> confirmTeamForTournament(
+            @PathVariable("tournamentId") Long tournamentId,
+            @PathVariable("teamId") Long teamId) {
+        
+        try {
+            log.info("Получен запрос на подтверждение команды с ID {} для турнира с ID {}", teamId, tournamentId);
+            
+            // Получаем турнир с командами
+            Tournament tournament = tournamentService.getTournamentWithTeams(tournamentId);
+            
+            // Ищем нужную связь команды с турниром
+            Optional<TournamentTeam> tournamentTeamOpt = tournament.getTeams().stream()
+                .filter(tt -> tt.getTeam().getId().equals(teamId))
+                .findFirst();
+            
+            if (tournamentTeamOpt.isEmpty()) {
+                log.warn("Команда с ID {} не найдена в турнире с ID {}", teamId, tournamentId);
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Команда не найдена в этом турнире"));
+            }
+            
+            TournamentTeam tournamentTeam = tournamentTeamOpt.get();
+            
+            // Изменяем статус на CONFIRMED
+            tournamentTeam.setStatus(TeamStatus.CONFIRMED);
+            
+            // Сохраняем изменения
+            tournamentService.saveTournamentTeam(tournamentTeam);
+            
+            log.info("Команда с ID {} успешно подтверждена для турнира с ID {}", teamId, tournamentId);
+            
+            // Возвращаем обновленные данные команды
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", teamId);
+            result.put("tournament_id", tournamentId);
+            result.put("status", "CONFIRMED");
+            result.put("message", "Команда успешно подтверждена для участия в турнире");
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Ошибка при подтверждении команды с ID {} для турнира с ID {}: {}", 
+                    teamId, tournamentId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при подтверждении команды: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Отклонение участия команды в турнире
+     */
+    @PostMapping("/{tournamentId}/teams/{teamId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rejectTeamForTournament(
+            @PathVariable("tournamentId") Long tournamentId,
+            @PathVariable("teamId") Long teamId) {
+        
+        try {
+            log.info("Получен запрос на отклонение команды с ID {} для турнира с ID {}", teamId, tournamentId);
+            
+            // Получаем турнир с командами
+            Tournament tournament = tournamentService.getTournamentWithTeams(tournamentId);
+            
+            // Ищем нужную связь команды с турниром
+            Optional<TournamentTeam> tournamentTeamOpt = tournament.getTeams().stream()
+                .filter(tt -> tt.getTeam().getId().equals(teamId))
+                .findFirst();
+            
+            if (tournamentTeamOpt.isEmpty()) {
+                log.warn("Команда с ID {} не найдена в турнире с ID {}", teamId, tournamentId);
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Команда не найдена в этом турнире"));
+            }
+            
+            TournamentTeam tournamentTeam = tournamentTeamOpt.get();
+            
+            // Изменяем статус на REJECTED
+            tournamentTeam.setStatus(TeamStatus.REJECTED);
+            
+            // Сохраняем изменения
+            tournamentService.saveTournamentTeam(tournamentTeam);
+            
+            log.info("Команда с ID {} успешно отклонена для турнира с ID {}", teamId, tournamentId);
+            
+            // Возвращаем обновленные данные команды
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", teamId);
+            result.put("tournament_id", tournamentId);
+            result.put("status", "REJECTED");
+            result.put("message", "Команда отклонена для участия в турнире");
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Ошибка при отклонении команды с ID {} для турнира с ID {}: {}", 
+                    teamId, tournamentId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при отклонении команды: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Преобразование объекта Tournament в Map для возврата клиенту
      */
     private Map<String, Object> convertToMap(Tournament tournament) {
