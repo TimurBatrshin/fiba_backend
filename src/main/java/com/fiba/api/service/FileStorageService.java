@@ -118,7 +118,7 @@ public class FileStorageService {
             log.info("File saved successfully: {}", targetLocation);
             
             // Return relative URL path for the file
-            String filePath = "/uploads/" + subdirectory + "/" + newFilename;
+            String filePath = "uploads/" + subdirectory + "/" + newFilename;
             log.info("Returning file URL path: {}", filePath);
             return filePath;
         } catch (IOException e) {
@@ -158,5 +158,12 @@ public class FileStorageService {
      */
     public String storeProfilePhoto(MultipartFile file) throws IOException {
         return storeFile(file, "profiles");
+    }
+
+    /**
+     * Сохраняет загруженный файл как аватар пользователя
+     */
+    public String storeAvatar(MultipartFile file) throws IOException {
+        return storeFile(file, "avatars");
     }
 }

@@ -6,11 +6,15 @@ import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Конфигурация веб-приложения, включая CORS и сопоставление путей
  */
 @Configuration
+@Slf4j
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${file.upload-dir}")
@@ -24,13 +28,28 @@ public class WebConfig implements WebMvcConfigurer {
     
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Для обработки статических ресурсов (включая загруженные файлы)
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:./" + uploadDir + "/");
-        
-        // Для Swagger UI
-        registry.addResourceHandler("/swagger-ui/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/springdoc-openapi-ui/");
+        try {
+            // Получаем абсолютный путь к директории загрузок
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            String resourceLocation = "file:" + uploadPath.toString() + "/";
+            
+            log.info("Configuring static resource handler:");
+            log.info("Upload directory path: {}", uploadPath);
+            log.info("Resource location: {}", resourceLocation);
+            
+            // Для обработки статических ресурсов (включая загруженные файлы)
+            registry.addResourceHandler("/uploads/**")
+                    .addResourceLocations(resourceLocation);
+            
+            // Для Swagger UI
+            registry.addResourceHandler("/swagger-ui/**")
+                    .addResourceLocations("classpath:/META-INF/resources/webjars/springdoc-openapi-ui/");
+                    
+            log.info("Static resource handlers configured successfully");
+        } catch (Exception e) {
+            log.error("Error configuring static resource handlers", e);
+            throw e;
+        }
     }
     
     @Override
