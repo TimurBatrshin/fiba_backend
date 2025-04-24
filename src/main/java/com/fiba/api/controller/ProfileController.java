@@ -6,6 +6,9 @@ import com.fiba.api.service.FileStorageService;
 import com.fiba.api.service.ProfileService;
 import com.fiba.api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {
     "http://localhost:8099", 
     "https://dev.bro-js.ru", 
@@ -100,44 +104,134 @@ public class ProfileController {
             @RequestParam(value = "total_points", required = false) Integer totalPoints,
             @RequestParam(value = "rating", required = false) Integer rating) {
         
-        User user = userService.getUserByEmail(userDetails.getUsername());
-        Profile currentProfile = profileService.getProfileByUserId(user.getId());
-        
-        // Сохраняем фото и получаем URL
-        String photoUrl;
         try {
-            photoUrl = fileStorageService.storeFile(photo);
+            log.info("Получен запрос на загрузку фото профиля для пользователя: {}", userDetails.getUsername());
+            
+            User user = userService.getUserByEmail(userDetails.getUsername());
+            log.info("Пользователь найден: {}, id: {}", user.getName(), user.getId());
+            
+            Profile currentProfile = profileService.getProfileByUserId(user.getId());
+            log.info("Профиль найден: {}", currentProfile.getId());
+            
+            // Проверяем файл
+            if (photo == null || photo.isEmpty()) {
+                log.error("Файл не был передан или пустой");
+                return ResponseEntity.badRequest().body(Map.of("error", "Файл не был передан или пустой"));
+            }
+            
+            log.info("Загружаемый файл: имя={}, размер={}, тип={}",
+                    photo.getOriginalFilename(), photo.getSize(), photo.getContentType());
+            
+            // Сохраняем фото и получаем URL
+            String photoUrl = fileStorageService.storeProfilePhoto(photo);
+            log.info("Фото сохранено по пути: {}", photoUrl);
+            
+            currentProfile.setPhotoUrl(photoUrl);
+            
+            // Обновляем другие поля профиля если они переданы
+            if (tournamentsPlayed != null) {
+                currentProfile.setTournamentsPlayed(tournamentsPlayed);
+            }
+            if (totalPoints != null) {
+                currentProfile.setTotalPoints(totalPoints);
+            }
+            if (rating != null) {
+                currentProfile.setRating(rating);
+            }
+            
+            // Сохранение обновленного профиля
+            Profile updatedProfile = profileService.saveProfile(currentProfile);
+            log.info("Профиль обновлен успешно");
+            
+            // Подготовка данных обновленного профиля в формате JSON
+            Map<String, Object> profileData = new HashMap<>();
+            profileData.put("id", updatedProfile.getId());
+            profileData.put("user_id", user.getId());
+            profileData.put("name", user.getName());
+            profileData.put("email", user.getEmail());
+            profileData.put("photo_url", updatedProfile.getPhotoUrl());
+            profileData.put("tournaments_played", updatedProfile.getTournamentsPlayed());
+            profileData.put("total_points", updatedProfile.getTotalPoints());
+            profileData.put("rating", updatedProfile.getRating());
+            
+            return ResponseEntity.ok(profileData);
         } catch (IOException e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Ошибка при сохранении фотографии: " + e.getMessage()));
+            log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при сохранении фотографии: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Внутренняя ошибка сервера: " + e.getMessage()));
         }
-        currentProfile.setPhotoUrl(photoUrl);
+    }
+
+    @PostMapping(value = "/profile/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadProfilePhotoById(
+            @PathVariable Long id,
+            @RequestParam("photo") MultipartFile photo) {
         
-        // Обновляем другие поля профиля если они переданы
-        if (tournamentsPlayed != null) {
-            currentProfile.setTournamentsPlayed(tournamentsPlayed);
+        try {
+            log.info("Получен запрос на загрузку фото для профиля с ID: {}", id);
+            
+            // Находим профиль по id
+            Profile profile = profileService.getProfileById(id);
+            if (profile == null) {
+                log.error("Профиль с ID {} не найден", id);
+                return ResponseEntity.badRequest().body(Map.of("error", "Профиль не найден"));
+            }
+            
+            log.info("Профиль найден. Загружаемый файл: имя={}, размер={}, тип={}",
+                    photo.getOriginalFilename(), photo.getSize(), photo.getContentType());
+            
+            // Проверяем файл
+            if (photo == null || photo.isEmpty()) {
+                log.error("Файл не был передан или пустой");
+                return ResponseEntity.badRequest().body(Map.of("error", "Файл не был передан или пустой"));
+            }
+            
+            // Сохраняем фото и получаем URL
+            String photoUrl = fileStorageService.storeProfilePhoto(photo);
+            log.info("Фото сохранено по пути: {}", photoUrl);
+            
+            profile.setPhotoUrl(photoUrl);
+            
+            // Сохраняем обновленный профиль
+            Profile updatedProfile = profileService.saveProfile(profile);
+            log.info("Профиль обновлен успешно");
+            
+            // Возвращаем результат
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", updatedProfile.getId());
+            result.put("photo_url", updatedProfile.getPhotoUrl());
+            result.put("message", "Фотография профиля успешно загружена");
+            
+            return ResponseEntity.ok(result);
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при сохранении фотографии: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Внутренняя ошибка сервера: " + e.getMessage()));
         }
-        if (totalPoints != null) {
-            currentProfile.setTotalPoints(totalPoints);
+    }
+
+    @GetMapping("/profile/{id}")
+    public ResponseEntity<?> getProfileById(@PathVariable Long id) {
+        try {
+            Profile profile = profileService.getProfileById(id);
+            if (profile == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            return ResponseEntity.ok(profile);
+        } catch (Exception e) {
+            log.error("Ошибка при получении профиля по ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении профиля: " + e.getMessage()));
         }
-        if (rating != null) {
-            currentProfile.setRating(rating);
-        }
-        
-        // Сохранение обновленного профиля
-        Profile updatedProfile = profileService.saveProfile(currentProfile);
-        
-        // Подготовка данных обновленного профиля в формате JSON
-        Map<String, Object> profileData = new HashMap<>();
-        profileData.put("id", updatedProfile.getId());
-        profileData.put("user_id", user.getId());
-        profileData.put("name", user.getName());
-        profileData.put("email", user.getEmail());
-        profileData.put("photo_url", updatedProfile.getPhotoUrl());
-        profileData.put("tournaments_played", updatedProfile.getTournamentsPlayed());
-        profileData.put("total_points", updatedProfile.getTotalPoints());
-        profileData.put("rating", updatedProfile.getRating());
-        
-        return ResponseEntity.ok(profileData);
     }
 
     @GetMapping("/current")

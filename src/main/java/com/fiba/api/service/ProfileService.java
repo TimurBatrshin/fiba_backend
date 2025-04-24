@@ -41,4 +41,14 @@ public class ProfileService {
     public List<Profile> getAllProfiles() {
         return profileRepository.findAll();
     }
+    
+    /**
+     * Получение профиля по его ID
+     * @param id ID профиля
+     * @return профиль или null, если не найден
+     */
+    @Transactional(readOnly = true)
+    public Profile getProfileById(Long id) {
+        return profileRepository.findById(id).orElse(null);
+    }
 } 
