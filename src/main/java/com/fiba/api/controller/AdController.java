@@ -94,7 +94,7 @@ public class AdController {
         // Сохраняем изображение
         String imageUrl;
         try {
-            imageUrl = fileStorageService.storeFile(image);
+            imageUrl = fileStorageService.storeFile(image, "");
         } catch (IOException e) {
             return ResponseEntity.status(500).body(Map.of("error", "Ошибка при сохранении изображения: " + e.getMessage()));
         }

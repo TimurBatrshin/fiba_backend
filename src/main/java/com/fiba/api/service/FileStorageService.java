@@ -67,7 +67,7 @@ public class FileStorageService {
      * @return Путь к сохраненному файлу относительно корня приложения
      * @throws IOException Если произошла ошибка при сохранении файла
      */
-    private String storeFile(MultipartFile file, String subdirectory) throws IOException {
+    public String storeFile(MultipartFile file, String subdirectory) throws IOException {
         if (file == null || file.isEmpty()) {
             log.error("Failed to store empty file in {}", subdirectory);
             throw new IllegalArgumentException("Cannot store empty file");
