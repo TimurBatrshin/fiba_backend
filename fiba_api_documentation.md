@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-https://api-domain.com/api
+https://timurbatrshin-fiba-backend-5ef6.twc1.net/api
 ```
 
 ## CORS Configuration
