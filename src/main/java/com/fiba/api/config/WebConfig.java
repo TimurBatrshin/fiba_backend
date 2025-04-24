@@ -29,7 +29,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         try {
-            // Получаем абсолютный путь к директории загрузок
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
             String resourceLocation = "file:" + uploadPath.toString() + "/";
             
@@ -37,13 +36,8 @@ public class WebConfig implements WebMvcConfigurer {
             log.info("Upload directory path: {}", uploadPath);
             log.info("Resource location: {}", resourceLocation);
             
-            // Для обработки статических ресурсов (включая загруженные файлы)
             registry.addResourceHandler("/uploads/**")
                     .addResourceLocations(resourceLocation);
-            
-            // Для Swagger UI
-            registry.addResourceHandler("/swagger-ui/**")
-                    .addResourceLocations("classpath:/META-INF/resources/webjars/springdoc-openapi-ui/");
                     
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {
@@ -56,14 +50,13 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
-                    "http://localhost:8099", 
+                    "http://localhost:8099",
+                    "http://localhost:3000",
                     "https://dev.bro-js.ru",
                     "https://timurbatrshin-fiba-backend-fc1f.twc1.net",
-                    "https://timurbatrshin-fiba-backend-5ef6.twc1.net",
-                    "http://localhost:3000",
-                    "http://localhost"
+                    "https://timurbatrshin-fiba-backend-5ef6.twc1.net"
                 )
-                .allowedMethods("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .exposedHeaders("Authorization")
                 .allowCredentials(true)

@@ -11,12 +11,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,9 +26,9 @@ import java.util.Map;
 /**
  * Глобальный обработчик исключений для унифицированного формата ошибок API
  */
-@RestControllerAdvice
+@ControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -182,32 +184,39 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.error("Invalid argument error: {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", ex.getMessage());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<Object> handleIOException(IOException ex) {
+        log.error("IO error: {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Ошибка при обработке файла");
+        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleMaxSizeException(MaxUploadSizeExceededException ex, WebRequest request) {
-        return new ApiError(
-                HttpStatus.BAD_REQUEST.value(),
-                "Размер загружаемого файла превышает максимально допустимый",
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
+    public ResponseEntity<Object> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        log.error("File size exceeded: {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Размер файла превышает допустимый предел (10MB)");
+        body.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
+        return new ResponseEntity<>(body, HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<Map<String, Object>> handleGlobalException(
-            Exception ex, WebRequest request) {
-        
-        log.error("Внутренняя ошибка сервера: {}", ex.getMessage(), ex);
-        
+    public ResponseEntity<Object> handleAllUncaughtException(Exception ex) {
+        log.error("Unexpected error: ", ex);
         Map<String, Object> body = new HashMap<>();
-        body.put("status", "error");
-        body.put("code", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        body.put("message", "Внутренняя ошибка сервера");
-        body.put("details", ex.getMessage());
-        body.put("path", request.getDescription(false).replace("uri=", ""));
-        body.put("timestamp", System.currentTimeMillis());
-        
+        body.put("error", "Внутренняя ошибка сервера");
+        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 } 
