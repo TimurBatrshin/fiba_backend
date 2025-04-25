@@ -383,6 +383,19 @@ public class TournamentService {
     }
 
     /**
+     * Get all teams for a tournament with their tournament-specific information
+     *
+     * @param tournamentId the ID of the tournament
+     * @return list of TournamentTeam objects containing team and tournament-specific data
+     * @throws ResourceNotFoundException if tournament is not found
+     */
+    @Transactional(readOnly = true)
+    public List<TournamentTeam> getTournamentTeams(Long tournamentId) {
+        Tournament tournament = getTournamentById(tournamentId);
+        return new ArrayList<>(tournament.getTeams());
+    }
+
+    /**
      * Получение регистраций команд турнира
      * @param tournamentId ID турнира
      * @return список регистраций
