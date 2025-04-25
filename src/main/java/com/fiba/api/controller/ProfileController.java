@@ -111,24 +111,32 @@ public class ProfileController {
         try {
             log.info("Получен запрос на загрузку фото профиля для пользователя: {}", userDetails.getUsername());
             
+            if (userDetails == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Пользователь не аутентифицирован"));
+            }
+            
             User user = userService.getUserByEmail(userDetails.getUsername());
             log.info("Пользователь найден: {}, id: {}", user.getName(), user.getId());
             
             Profile currentProfile = profileService.getProfileByUserId(user.getId());
             log.info("Профиль найден: {}", currentProfile.getId());
             
-            // Проверяем файл
-            if (photo == null || photo.isEmpty()) {
-                log.error("Файл не был передан или пустой");
-                return ResponseEntity.badRequest().body(Map.of("error", "Файл не был передан или пустой"));
-            }
-            
-            log.info("Загружаемый файл: имя={}, размер={}, тип={}",
-                    photo.getOriginalFilename(), photo.getSize(), photo.getContentType());
-            
             // Сохраняем фото и получаем URL
-            String photoUrl = fileStorageService.storeProfilePhoto(photo);
+            // FileStorageService теперь выполняет все необходимые проверки
+            String photoUrl = fileStorageService.storeFile(photo);
             log.info("Фото сохранено по пути: {}", photoUrl);
+            
+            // Если есть предыдущее фото, удаляем его
+            String oldPhotoUrl = currentProfile.getPhotoUrl();
+            if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
+                try {
+                    fileStorageService.deleteFile(oldPhotoUrl);
+                    log.info("Старое фото удалено: {}", oldPhotoUrl);
+                } catch (Exception e) {
+                    log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
+                }
+            }
             
             currentProfile.setPhotoUrl(photoUrl);
             
@@ -159,6 +167,11 @@ public class ProfileController {
             profileData.put("rating", updatedProfile.getRating());
             
             return ResponseEntity.ok(profileData);
+            
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка валидации файла: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
         } catch (IOException e) {
             log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -178,44 +191,43 @@ public class ProfileController {
         try {
             log.info("Получен запрос на загрузку фото для профиля с ID: {}", id);
             
-            // Проверяем файл
-            if (photo == null || photo.isEmpty()) {
-                log.error("Файл не был передан или пустой");
-                // Проверка наличия файлов в запросе
-                
-                return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Файл не был передан или пустой", 
-                    "debug", "Проверьте, что файл отправляется с именем параметра 'photo' или 'file'"
-                ));
+            if (photo == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Файл не был передан"));
             }
             
-            // Находим профиль по id
             Profile profile = profileService.getProfileById(id);
             if (profile == null) {
-                log.error("Профиль с ID {} не найден", id);
-                return ResponseEntity.badRequest().body(Map.of("error", "Профиль не найден"));
+                return ResponseEntity.notFound().build();
             }
             
-            log.info("Профиль найден. Загружаемый файл: имя={}, размер={}, тип={}",
-                    photo.getOriginalFilename(), photo.getSize(), photo.getContentType());
-            
-            // Сохраняем фото и получаем URL
-            String photoUrl = fileStorageService.storeProfilePhoto(photo);
+            // Сохраняем новое фото
+            String photoUrl = fileStorageService.storeFile(photo);
             log.info("Фото сохранено по пути: {}", photoUrl);
             
+            // Удаляем старое фото если оно есть
+            String oldPhotoUrl = profile.getPhotoUrl();
+            if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
+                try {
+                    fileStorageService.deleteFile(oldPhotoUrl);
+                    log.info("Старое фото удалено: {}", oldPhotoUrl);
+                } catch (Exception e) {
+                    log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
+                }
+            }
+            
             profile.setPhotoUrl(photoUrl);
-            
-            // Сохраняем обновленный профиль
             Profile updatedProfile = profileService.saveProfile(profile);
-            log.info("Профиль обновлен успешно");
             
-            // Возвращаем результат
-            Map<String, Object> result = new HashMap<>();
-            result.put("id", updatedProfile.getId());
-            result.put("photo_url", updatedProfile.getPhotoUrl());
-            result.put("message", "Фотография профиля успешно загружена");
+            return ResponseEntity.ok(Map.of(
+                "id", updatedProfile.getId(),
+                "photo_url", updatedProfile.getPhotoUrl()
+            ));
             
-            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка валидации файла: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
         } catch (IOException e) {
             log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

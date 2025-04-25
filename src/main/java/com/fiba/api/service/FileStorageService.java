@@ -24,6 +24,15 @@ public class FileStorageService {
     
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
+
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final String[] ALLOWED_IMAGE_TYPES = {
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp"
+    };
     
     /**
      * Инициализирует сервис хранения файлов, создавая необходимые директории
@@ -60,6 +69,44 @@ public class FileStorageService {
     }
     
     /**
+     * Проверяет, является ли файл допустимым изображением
+     */
+    private void validateImageFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Файл не может быть пустым");
+        }
+
+        // Проверка размера файла
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("Размер файла превышает максимально допустимый (5MB)");
+        }
+
+        // Проверка типа файла
+        String contentType = file.getContentType();
+        if (contentType == null || !isAllowedImageType(contentType)) {
+            throw new IllegalArgumentException("Недопустимый тип файла. Разрешены только изображения (JPEG, PNG, GIF, BMP, WEBP)");
+        }
+
+        // Проверка имени файла
+        String filename = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "");
+        if (filename.contains("..")) {
+            throw new IllegalArgumentException("Имя файла содержит недопустимый путь");
+        }
+    }
+
+    /**
+     * Проверяет, является ли тип файла разрешенным изображением
+     */
+    private boolean isAllowedImageType(String contentType) {
+        for (String allowedType : ALLOWED_IMAGE_TYPES) {
+            if (contentType.equalsIgnoreCase(allowedType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
      * Сохраняет загруженный файл в указанной поддиректории
      *
      * @param file Загруженный файл
@@ -68,35 +115,31 @@ public class FileStorageService {
      * @throws IOException Если произошла ошибка при сохранении файла
      */
     public String storeFile(MultipartFile file, String subdirectory) throws IOException {
-        if (file == null || file.isEmpty()) {
-            log.error("Failed to store empty file in {}", subdirectory);
-            throw new IllegalArgumentException("Cannot store empty file");
-        }
+        validateImageFile(file);
 
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "");
         log.debug("Processing file upload: name={}, size={}, type={}, subdirectory={}",
                  originalFilename, file.getSize(), file.getContentType(), subdirectory);
 
-        if (originalFilename.contains("..")) {
-            String msg = "Cannot store file with relative path outside current directory: " + originalFilename;
-            log.error(msg);
-            throw new IllegalArgumentException(msg);
-        }
-
+        // Получаем расширение файла
         String fileExtension = "";
         if (originalFilename.contains(".")) {
-            fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            fileExtension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
         }
+
+        // Генерируем уникальное имя файла
         String newFilename = UUID.randomUUID().toString() + fileExtension;
         
+        // Создаем путь для сохранения файла
         Path targetLocation = rootLocation.resolve(subdirectory).resolve(newFilename);
         log.debug("Saving file to: {}", targetLocation);
         
+        // Сохраняем файл
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
         log.info("Successfully stored file: {}", targetLocation);
 
         // Возвращаем путь относительно корня приложения
-        return subdirectory + "/" + newFilename;
+        return "/uploads/" + subdirectory + "/" + newFilename;
     }
     
     /**
