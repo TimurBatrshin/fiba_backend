@@ -18,10 +18,10 @@ public class PlayerService {
 
     @Transactional
     public Player createOrUpdatePlayer(User user) {
-        return playerRepository.findByName(user.getUsername())
+        return playerRepository.findByName(user.getName())
             .orElseGet(() -> {
                 Player player = new Player();
-                player.setName(user.getUsername());
+                player.setName(user.getName());
                 return playerRepository.save(player);
             });
     }
