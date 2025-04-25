@@ -23,17 +23,21 @@ public class RegistrationService {
     private final UserService userService;
     private final TeamService teamService;
     private final TeamRepository teamRepository;
+    private final PlayerService playerService;
 
     @Transactional
     public Registration createRegistration(Long tournamentId, String teamName, Long captainId, List<Long> playerIds) {
         Tournament tournament = tournamentService.getTournamentById(tournamentId);
         User captain = userService.getUserById(captainId);
-        List<User> players = userService.getUsersByIds(playerIds);
+        List<User> users = userService.getUsersByIds(playerIds);
+        
+        // Convert users to players
+        List<Player> players = playerService.getOrCreatePlayers(users);
 
         // Создаем команду
         Team team = new Team();
         team.setName(teamName);
-        team.setPlayers(players); // Set the players in the team
+        team.setPlayers(players);
         team = teamRepository.save(team);
 
         // Создаем регистрацию
@@ -41,7 +45,7 @@ public class RegistrationService {
         registration.setTeamName(teamName);
         registration.setTournament(tournament);
         registration.setCaptain(captain);
-        registration.setPlayers(players);
+        registration.setPlayers(users); // Registration still uses Users
         registration.setStatus("pending");
 
         // Связываем команду с турниром через TournamentTeam
