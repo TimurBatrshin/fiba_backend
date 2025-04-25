@@ -84,7 +84,7 @@ public class AuthController {
                     userDetails.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
             
             log.debug("Получаем информацию о пользователе из базы данных");
-            User user = userService.findByEmail(authRequest.getEmail());
+            User user = userService.getUserByEmail(authRequest.getEmail());
             
             log.info("Пользователь успешно вошел: {}", user.getEmail());
             
@@ -144,7 +144,7 @@ public class AuthController {
                 
                 if (jwtTokenProvider.validateToken(token)) {
                     String username = jwtTokenProvider.getUsername(token);
-                    User user = userService.findByEmail(username);
+                    User user = userService.getUserByEmail(username);
                     
                     // Создание нового токена с обновленным сроком действия
                     String newToken = jwtTokenProvider.createToken(username, user.getRole());
