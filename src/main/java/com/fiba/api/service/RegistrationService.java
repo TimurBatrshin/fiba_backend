@@ -48,7 +48,7 @@ public class RegistrationService {
         tournamentTeam.setTeam(team);
         tournamentTeam.setTournament(tournament);
         tournamentTeam.setStatus(TeamStatus.PENDING);
-        tournament.getTournamentTeams().add(tournamentTeam);
+        tournament.getTeams().add(tournamentTeam);
 
         return registrationRepository.save(registration);
     }
