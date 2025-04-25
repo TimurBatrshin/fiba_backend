@@ -33,6 +33,7 @@ public class RegistrationService {
         // Создаем команду
         Team team = new Team();
         team.setName(teamName);
+        team.setPlayers(players); // Set the players in the team
         team = teamRepository.save(team);
 
         // Создаем регистрацию
