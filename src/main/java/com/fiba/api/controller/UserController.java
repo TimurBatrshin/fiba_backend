@@ -3,6 +3,7 @@ package com.fiba.api.controller;
 import com.fiba.api.model.User;
 import com.fiba.api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,10 +14,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {
     "http://localhost:8099", 
     "https://dev.bro-js.ru", 
@@ -26,6 +29,12 @@ import java.util.stream.Collectors;
     "http://localhost"
 }, allowCredentials = "true")
 public class UserController {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[A-Za-z0-9+_.-]+@(.+)$"
+    );
+    private static final int MIN_NAME_LENGTH = 2;
+    private static final int MAX_NAME_LENGTH = 50;
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -39,7 +48,61 @@ public class UserController {
             User user = userService.getUserByEmail(userDetails.getUsername());
             return ResponseEntity.ok(convertToMap(user));
         } catch (Exception e) {
+            log.error("Ошибка при получении данных пользователя: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", "Ошибка при получении данных пользователя"));
+        }
+    }
+
+    @PutMapping("/api/users/me")
+    public ResponseEntity<?> updateCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> userData) {
+        try {
+            User currentUser = userService.getUserByEmail(userDetails.getUsername());
+            Map<String, String> errors = new HashMap<>();
+            
+            // Проверяем и обновляем имя
+            if (userData.containsKey("name")) {
+                String newName = userData.get("name");
+                if (newName == null || newName.trim().isEmpty()) {
+                    errors.put("name", "Имя не может быть пустым");
+                } else if (newName.length() < MIN_NAME_LENGTH) {
+                    errors.put("name", "Имя должно содержать минимум " + MIN_NAME_LENGTH + " символа");
+                } else if (newName.length() > MAX_NAME_LENGTH) {
+                    errors.put("name", "Имя не может быть длиннее " + MAX_NAME_LENGTH + " символов");
+                } else {
+                    currentUser.setName(newName.trim());
+                }
+            }
+            
+            // Проверяем и обновляем email
+            if (userData.containsKey("email")) {
+                String newEmail = userData.get("email");
+                if (newEmail == null || newEmail.trim().isEmpty()) {
+                    errors.put("email", "Email не может быть пустым");
+                } else if (!EMAIL_PATTERN.matcher(newEmail).matches()) {
+                    errors.put("email", "Некорректный формат email");
+                } else if (!newEmail.equals(currentUser.getEmail()) && userService.existsByEmail(newEmail)) {
+                    errors.put("email", "Этот email уже используется");
+                } else {
+                    currentUser.setEmail(newEmail.trim().toLowerCase());
+                }
+            }
+
+            // Если есть ошибки, возвращаем их
+            if (!errors.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("errors", errors));
+            }
+            
+            User updatedUser = userService.updateUser(currentUser);
+            log.info("Пользователь {} успешно обновил свой профиль", updatedUser.getId());
+            return ResponseEntity.ok(convertToMap(updatedUser));
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении данных пользователя: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Ошибка при обновлении данных пользователя",
+                "message", e.getMessage()
+            ));
         }
     }
 
