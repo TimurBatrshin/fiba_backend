@@ -28,6 +28,12 @@ public class RegistrationService {
     @Transactional
     public Registration createRegistration(Long tournamentId, String teamName, Long captainId, List<Long> playerIds) {
         Tournament tournament = tournamentService.getTournamentById(tournamentId);
+        
+        // Check if team name already exists in this tournament
+        if (registrationRepository.existsByTeamNameAndTournamentId(teamName, tournamentId)) {
+            throw new IllegalStateException("Team with name '" + teamName + "' already exists in this tournament");
+        }
+        
         User captain = userService.getUserById(captainId);
         List<User> users = userService.getUsersByIds(playerIds);
         

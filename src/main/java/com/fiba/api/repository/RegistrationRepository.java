@@ -33,4 +33,6 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
      */
     @Query("SELECT DISTINCT r FROM Registration r LEFT JOIN FETCH r.players WHERE r.id = :registrationId")
     Optional<Registration> loadRegistrationWithPlayers(Long registrationId);
+
+    boolean existsByTeamNameAndTournamentId(String teamName, Long tournamentId);
 } 

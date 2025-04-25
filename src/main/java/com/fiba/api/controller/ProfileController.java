@@ -61,187 +61,6 @@ public class ProfileController {
         return ResponseEntity.ok(profileData);
     }
 
-    @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, Object> updateData) {
-        
-        User user = userService.getUserByEmail(userDetails.getUsername());
-        Profile currentProfile = profileService.getProfileByUserId(user.getId());
-        
-        // Обновляем поля профиля если они есть в запросе
-        if (updateData.containsKey("photo_url")) {
-            currentProfile.setPhotoUrl((String) updateData.get("photo_url"));
-        }
-        if (updateData.containsKey("tournaments_played")) {
-            currentProfile.setTournamentsPlayed((Integer) updateData.get("tournaments_played"));
-        }
-        if (updateData.containsKey("total_points")) {
-            currentProfile.setTotalPoints((Integer) updateData.get("total_points"));
-        }
-        if (updateData.containsKey("rating")) {
-            currentProfile.setRating((Integer) updateData.get("rating"));
-        }
-        
-        // Сохранение обновленного профиля
-        Profile updatedProfile = profileService.saveProfile(currentProfile);
-        
-        // Подготовка данных обновленного профиля в формате JSON
-        Map<String, Object> profileData = new HashMap<>();
-        profileData.put("id", updatedProfile.getId());
-        profileData.put("user_id", user.getId());
-        profileData.put("name", user.getName());
-        profileData.put("email", user.getEmail());
-        profileData.put("photo_url", updatedProfile.getPhotoUrl());
-        profileData.put("tournaments_played", updatedProfile.getTournamentsPlayed());
-        profileData.put("total_points", updatedProfile.getTotalPoints());
-        profileData.put("rating", updatedProfile.getRating());
-        
-        return ResponseEntity.ok(profileData);
-    }
-
-    @PostMapping("/profile/photo")
-    public ResponseEntity<?> uploadProfilePhoto(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("photo") MultipartFile photo,
-            @RequestParam(value = "tournaments_played", required = false) Integer tournamentsPlayed,
-            @RequestParam(value = "total_points", required = false) Integer totalPoints,
-            @RequestParam(value = "rating", required = false) Integer rating) {
-        
-        try {
-            log.info("Получен запрос на загрузку фото профиля для пользователя: {}", userDetails.getUsername());
-            
-            if (userDetails == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Пользователь не аутентифицирован"));
-            }
-            
-            User user = userService.getUserByEmail(userDetails.getUsername());
-            log.info("Пользователь найден: {}, id: {}", user.getName(), user.getId());
-            
-            Profile currentProfile = profileService.getProfileByUserId(user.getId());
-            log.info("Профиль найден: {}", currentProfile.getId());
-            
-            // Сохраняем фото и получаем URL
-            String photoUrl = fileStorageService.storeProfilePhoto(photo);
-            log.info("Фото сохранено по пути: {}", photoUrl);
-            
-            // Если есть предыдущее фото, получаем его относительный путь и удаляем
-            String oldPhotoUrl = currentProfile.getPhotoUrl();
-            if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
-                try {
-                    // Преобразуем URL в относительный путь, удаляя префикс "/uploads/"
-                    String relativePath = oldPhotoUrl.substring("/uploads/".length());
-                    fileStorageService.storeFile(null, relativePath); // This will effectively delete the old file
-                    log.info("Старое фото удалено: {}", oldPhotoUrl);
-                } catch (Exception e) {
-                    log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
-                }
-            }
-            
-            currentProfile.setPhotoUrl(photoUrl);
-            
-            // Обновляем другие поля профиля если они переданы
-            if (tournamentsPlayed != null) {
-                currentProfile.setTournamentsPlayed(tournamentsPlayed);
-            }
-            if (totalPoints != null) {
-                currentProfile.setTotalPoints(totalPoints);
-            }
-            if (rating != null) {
-                currentProfile.setRating(rating);
-            }
-            
-            // Сохранение обновленного профиля
-            Profile updatedProfile = profileService.saveProfile(currentProfile);
-            log.info("Профиль обновлен успешно");
-            
-            // Подготовка данных обновленного профиля в формате JSON
-            Map<String, Object> profileData = new HashMap<>();
-            profileData.put("id", updatedProfile.getId());
-            profileData.put("user_id", user.getId());
-            profileData.put("name", user.getName());
-            profileData.put("email", user.getEmail());
-            profileData.put("photo_url", updatedProfile.getPhotoUrl());
-            profileData.put("tournaments_played", updatedProfile.getTournamentsPlayed());
-            profileData.put("total_points", updatedProfile.getTotalPoints());
-            profileData.put("rating", updatedProfile.getRating());
-            
-            return ResponseEntity.ok(profileData);
-            
-        } catch (IllegalArgumentException e) {
-            log.error("Ошибка валидации файла: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Ошибка при сохранении фотографии: " + e.getMessage()));
-        } catch (Exception e) {
-            log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Внутренняя ошибка сервера: " + e.getMessage()));
-        }
-    }
-
-    @PostMapping(value = "/profile/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadProfilePhotoById(
-            @PathVariable Long id,
-            @RequestParam(value = "photo", required = false) MultipartFile photo) {
-        
-        try {
-            log.info("Получен запрос на загрузку фото для профиля с ID: {}", id);
-            
-            if (photo == null) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Файл не был передан"));
-            }
-            
-            Profile profile = profileService.getProfileById(id);
-            if (profile == null) {
-                return ResponseEntity.notFound().build();
-            }
-            
-            // Сохраняем новое фото
-            String photoUrl = fileStorageService.storeProfilePhoto(photo);
-            log.info("Фото сохранено по пути: {}", photoUrl);
-            
-            // Если есть предыдущее фото, получаем его относительный путь и удаляем
-            String oldPhotoUrl = profile.getPhotoUrl();
-            if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
-                try {
-                    // Преобразуем URL в относительный путь, удаляя префикс "/uploads/"
-                    String relativePath = oldPhotoUrl.substring("/uploads/".length());
-                    fileStorageService.storeFile(null, relativePath); // This will effectively delete the old file
-                    log.info("Старое фото удалено: {}", oldPhotoUrl);
-                } catch (Exception e) {
-                    log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
-                }
-            }
-            
-            profile.setPhotoUrl(photoUrl);
-            Profile updatedProfile = profileService.saveProfile(profile);
-            
-            return ResponseEntity.ok(Map.of(
-                "id", updatedProfile.getId(),
-                "photo_url", updatedProfile.getPhotoUrl()
-            ));
-            
-        } catch (IllegalArgumentException e) {
-            log.error("Ошибка валидации файла: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Ошибка при сохранении фотографии: " + e.getMessage()));
-        } catch (Exception e) {
-            log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Внутренняя ошибка сервера: " + e.getMessage()));
-        }
-    }
-
     @GetMapping("/profile/{id}")
     public ResponseEntity<?> getProfileById(@PathVariable Long id) {
         try {
@@ -258,13 +77,91 @@ public class ProfileController {
         }
     }
 
-    @GetMapping("/current")
-    public ResponseEntity<?> getCurrentUserProfile(Authentication authentication) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userService.getUserByEmail(userDetails.getUsername());
+    @PostMapping(value = "/profile/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateUserProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(value = "photo", required = false) MultipartFile photo,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "name", required = false) String name) {
         
-        Profile profile = profileService.getProfileByUserId(user.getId());
-        
-        return ResponseEntity.ok(profile);
+        try {
+            log.info("Получен запрос на обновление профиля для пользователя: {}", userDetails.getUsername());
+            
+            if (userDetails == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Пользователь не аутентифицирован"));
+            }
+            
+            User user = userService.getUserByEmail(userDetails.getUsername());
+            log.info("Пользователь найден: {}, id: {}", user.getName(), user.getId());
+            
+            Profile currentProfile = profileService.getProfileByUserId(user.getId());
+            log.info("Профиль найден: {}", currentProfile.getId());
+            
+            // Обновляем фото если оно предоставлено
+            if (photo != null && !photo.isEmpty()) {
+                String photoUrl = fileStorageService.storeProfilePhoto(photo);
+                log.info("Фото сохранено по пути: {}", photoUrl);
+                
+                // Если есть предыдущее фото, удаляем его
+                String oldPhotoUrl = currentProfile.getPhotoUrl();
+                if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
+                    try {
+                        String relativePath = oldPhotoUrl.substring("/uploads/".length());
+                        fileStorageService.storeFile(null, relativePath);
+                        log.info("Старое фото удалено: {}", oldPhotoUrl);
+                    } catch (Exception e) {
+                        log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
+                    }
+                }
+                
+                currentProfile.setPhotoUrl(photoUrl);
+            }
+            
+            // Обновляем email если он предоставлен
+            if (email != null && !email.trim().isEmpty()) {
+                // Проверяем, не занят ли email другим пользователем
+                if (!email.equals(user.getEmail()) && userService.existsByEmail(email)) {
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Этот email уже используется"));
+                }
+                user.setEmail(email.trim().toLowerCase());
+            }
+            
+            // Обновляем имя если оно предоставлено
+            if (name != null && !name.trim().isEmpty()) {
+                user.setName(name.trim());
+            }
+            
+            // Сохраняем обновления
+            User updatedUser = userService.updateUser(user);
+            Profile updatedProfile = profileService.saveProfile(currentProfile);
+            
+            // Подготовка ответа
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", updatedProfile.getId());
+            response.put("user_id", updatedUser.getId());
+            response.put("name", updatedUser.getName());
+            response.put("email", updatedUser.getEmail());
+            response.put("photo_url", updatedProfile.getPhotoUrl());
+            response.put("tournaments_played", updatedProfile.getTournamentsPlayed());
+            response.put("total_points", updatedProfile.getTotalPoints());
+            response.put("rating", updatedProfile.getRating());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка валидации данных: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении фотографии: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при сохранении фотографии: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Внутренняя ошибка сервера: " + e.getMessage()));
+        }
     }
 } 
