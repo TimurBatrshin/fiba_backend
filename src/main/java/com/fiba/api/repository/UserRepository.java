@@ -30,12 +30,29 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     /**
      * Поиск пользователей по имени или email, содержащим искомую строку (без учета регистра)
+     * Учитывает язык ввода (кириллица/латиница)
      * @param query строка для поиска
      * @return список пользователей, соответствующих критериям поиска
      */
-    @Query("SELECT u FROM User u WHERE " +
-           "LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))")
+    @Query(value = """
+           SELECT * FROM users u 
+           WHERE CASE 
+               WHEN :query ~ '^[А-Яа-яЁё\\s]+$' THEN 
+                   -- Если запрос на кириллице, ищем только в именах на кириллице
+                   u.name ~ '^[А-Яа-яЁё\\s]+$' AND 
+                   u.name ILIKE '%' || :query || '%'
+               WHEN :query ~ '^[A-Za-z\\s]+$' THEN 
+                   -- Если запрос на латинице, ищем только в именах на латинице
+                   u.name ~ '^[A-Za-z\\s]+$' AND 
+                   u.name ILIKE '%' || :query || '%'
+               ELSE 
+                   -- Если запрос смешанный или содержит другие символы,
+                   -- ищем точное совпадение части строки
+                   u.name ILIKE '%' || :query || '%'
+           END
+           OR u.email ILIKE '%' || :query || '%'
+           """, 
+           nativeQuery = true)
     List<User> searchByNameOrEmail(@Param("query") String query);
 
     /**
