@@ -1,5 +1,6 @@
 package com.fiba.api.controller;
 
+import com.fiba.api.dto.TeamRegistrationRequest;
 import com.fiba.api.model.Registration;
 import com.fiba.api.model.Tournament;
 import com.fiba.api.model.User;
@@ -88,29 +89,24 @@ public class RegistrationController {
 
     @PostMapping
     public ResponseEntity<?> createRegistration(
-            @RequestBody Map<String, Object> registrationData,
+            @Valid @RequestBody TeamRegistrationRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         // Получаем текущего пользователя как капитана
         User captain = userService.getUserByEmail(userDetails.getUsername());
         
-        // Получаем турнир
-        Long tournamentId = Long.valueOf(registrationData.get("tournament_id").toString());
-        Tournament tournament = tournamentService.getTournamentById(tournamentId);
+        // Проверяем, что капитан включен в список игроков
+        if (!request.getPlayerIds().contains(captain.getId())) {
+            request.getPlayerIds().add(captain.getId());
+        }
         
-        // Подготавливаем объект игроков команды (начально только капитан)
-        List<User> players = new ArrayList<>();
-        players.add(captain);
+        // Создаем регистрацию
+        Registration createdRegistration = registrationService.createRegistration(
+            request.getTournamentId(),
+            request.getTeamName(),
+            captain.getId(),
+            request.getPlayerIds()
+        );
         
-        // Создаем объект регистрации
-        Registration registration = Registration.builder()
-                .teamName((String) registrationData.get("team_name"))
-                .tournament(tournament)
-                .captain(captain)
-                .status("pending")
-                .players(players)
-                .build();
-        
-        Registration createdRegistration = registrationService.createRegistration(registration);
         return ResponseEntity.ok(convertToMap(createdRegistration));
     }
 

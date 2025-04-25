@@ -6,6 +6,7 @@ import com.fiba.api.model.Team;
 import com.fiba.api.model.Tournament;
 import com.fiba.api.model.TournamentStatus;
 import com.fiba.api.model.TournamentTeam;
+import com.fiba.api.model.Registration;
 import com.fiba.api.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -376,7 +377,7 @@ public class TournamentService {
     @Transactional(readOnly = true)
     public List<Team> getTeamsByTournamentId(Long tournamentId) {
         Tournament tournament = getTournamentById(tournamentId);
-        return tournament.getTournamentTeams().stream()
+        return tournament.getTeams().stream()
                 .map(TournamentTeam::getTeam)
                 .collect(Collectors.toList());
     }

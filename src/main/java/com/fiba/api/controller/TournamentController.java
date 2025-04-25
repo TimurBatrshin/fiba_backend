@@ -472,7 +472,7 @@ public class TournamentController {
     @PostMapping("/{id}/register")
     public ResponseEntity<?> registerTeamForTournament(
             @PathVariable("id") Long tournamentId,
-            @RequestBody Map<String, Object> registrationData,
+            @Valid @RequestBody TeamRegistrationRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         
         try {
@@ -498,57 +498,28 @@ public class TournamentController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Регистрация на этот турнир закрыта"));
             }
             
-            // Проверяем название команды
-            String teamName = (String) registrationData.get("teamName");
-            if (teamName == null || teamName.trim().length() < 3) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Название команды должно содержать минимум 3 символа"));
+            // Проверяем, что ID турнира в пути совпадает с ID в запросе
+            if (!tournamentId.equals(request.getTournamentId())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "ID турнира в пути и в теле запроса не совпадают"));
             }
             
-            // Обрабатываем список игроков
-            Object playerIdsObj = registrationData.get("playerIds");
-            List<String> playerIds;
-            
-            if (playerIdsObj instanceof List) {
-                playerIds = ((List<?>) playerIdsObj).stream()
-                        .map(Object::toString)
-                        .collect(Collectors.toList());
-            } else {
-                return ResponseEntity.badRequest().body(Map.of("error", "Неверный формат списка игроков"));
+            // Проверяем, что капитан включен в список игроков
+            if (!request.getPlayerIds().contains(captain.getId())) {
+                request.getPlayerIds().add(captain.getId());
             }
             
-            if (playerIds == null || playerIds.isEmpty() || playerIds.size() < 3) {
+            // Проверяем минимальное количество игроков
+            if (request.getPlayerIds().size() < 3) {
                 return ResponseEntity.badRequest().body(Map.of("error", "В команде должно быть минимум 3 игрока"));
             }
             
-            // Преобразуем строковые ID в Long
-            List<Long> playerLongIds;
-            try {
-                playerLongIds = playerIds.stream()
-                    .map(Long::valueOf)
-                    .collect(Collectors.toList());
-            } catch (NumberFormatException e) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Некорректные ID игроков"));
-            }
-            
-            // Получаем игроков из базы данных
-            List<User> players = userService.getUsersByIds(playerLongIds);
-            
-            // Проверяем, что все игроки найдены
-            if (players.size() != playerLongIds.size()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Некоторые игроки не найдены"));
-            }
-            
             // Создаем регистрацию
-            Registration registration = Registration.builder()
-                    .teamName(teamName)
-                    .tournament(tournament)
-                    .captain(captain)
-                    .status("pending")
-                    .players(players)
-                    .build();
-            
-            // Сохраняем регистрацию
-            Registration createdRegistration = registrationService.createRegistration(registration);
+            Registration createdRegistration = registrationService.createRegistration(
+                tournamentId,
+                request.getTeamName(),
+                captain.getId(),
+                request.getPlayerIds()
+            );
             
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", createdRegistration.getId(),
