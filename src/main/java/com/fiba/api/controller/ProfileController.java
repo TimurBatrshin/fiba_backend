@@ -123,15 +123,16 @@ public class ProfileController {
             log.info("Профиль найден: {}", currentProfile.getId());
             
             // Сохраняем фото и получаем URL
-            // FileStorageService теперь выполняет все необходимые проверки
-            String photoUrl = fileStorageService.storeFile(photo);
+            String photoUrl = fileStorageService.storeProfilePhoto(photo);
             log.info("Фото сохранено по пути: {}", photoUrl);
             
-            // Если есть предыдущее фото, удаляем его
+            // Если есть предыдущее фото, получаем его относительный путь и удаляем
             String oldPhotoUrl = currentProfile.getPhotoUrl();
             if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
                 try {
-                    fileStorageService.deleteFile(oldPhotoUrl);
+                    // Преобразуем URL в относительный путь, удаляя префикс "/uploads/"
+                    String relativePath = oldPhotoUrl.substring("/uploads/".length());
+                    fileStorageService.storeFile(null, relativePath); // This will effectively delete the old file
                     log.info("Старое фото удалено: {}", oldPhotoUrl);
                 } catch (Exception e) {
                     log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
@@ -202,14 +203,16 @@ public class ProfileController {
             }
             
             // Сохраняем новое фото
-            String photoUrl = fileStorageService.storeFile(photo);
+            String photoUrl = fileStorageService.storeProfilePhoto(photo);
             log.info("Фото сохранено по пути: {}", photoUrl);
             
-            // Удаляем старое фото если оно есть
+            // Если есть предыдущее фото, получаем его относительный путь и удаляем
             String oldPhotoUrl = profile.getPhotoUrl();
             if (oldPhotoUrl != null && !oldPhotoUrl.isEmpty()) {
                 try {
-                    fileStorageService.deleteFile(oldPhotoUrl);
+                    // Преобразуем URL в относительный путь, удаляя префикс "/uploads/"
+                    String relativePath = oldPhotoUrl.substring("/uploads/".length());
+                    fileStorageService.storeFile(null, relativePath); // This will effectively delete the old file
                     log.info("Старое фото удалено: {}", oldPhotoUrl);
                 } catch (Exception e) {
                     log.warn("Не удалось удалить старое фото: {}", oldPhotoUrl, e);
@@ -258,9 +261,8 @@ public class ProfileController {
     @GetMapping("/current")
     public ResponseEntity<?> getCurrentUserProfile(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userService.findByEmail(userDetails.getUsername());
+        User user = userService.getUserByEmail(userDetails.getUsername());
         
-        // Используем правильный метод
         Profile profile = profileService.getProfileByUserId(user.getId());
         
         return ResponseEntity.ok(profile);
