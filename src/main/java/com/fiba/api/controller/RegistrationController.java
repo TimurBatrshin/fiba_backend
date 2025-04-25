@@ -7,6 +7,7 @@ import com.fiba.api.model.User;
 import com.fiba.api.service.RegistrationService;
 import com.fiba.api.service.TournamentService;
 import com.fiba.api.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -1,5 +1,6 @@
 package com.fiba.api.controller;
 
+import com.fiba.api.dto.TeamRegistrationRequest;
 import com.fiba.api.model.Registration;
 import com.fiba.api.model.Team;
 import com.fiba.api.model.Tournament;
@@ -12,6 +13,7 @@ import com.fiba.api.service.RegistrationService;
 import com.fiba.api.service.TournamentService;
 import com.fiba.api.service.UserService;
 import com.fiba.api.service.FileStorageService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
