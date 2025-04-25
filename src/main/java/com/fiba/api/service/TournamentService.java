@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Сервис для работы с турнирами
@@ -365,5 +366,29 @@ public class TournamentService {
         } else {
             throw new IllegalArgumentException("Tournament must be set and have an ID");
         }
+    }
+
+    /**
+     * Получение команд турнира
+     * @param tournamentId ID турнира
+     * @return список команд турнира
+     */
+    @Transactional(readOnly = true)
+    public List<Team> getTeamsByTournamentId(Long tournamentId) {
+        Tournament tournament = getTournamentById(tournamentId);
+        return tournament.getTournamentTeams().stream()
+                .map(TournamentTeam::getTeam)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Получение регистраций команд турнира
+     * @param tournamentId ID турнира
+     * @return список регистраций
+     */
+    @Transactional(readOnly = true)
+    public List<Registration> getTournamentRegistrations(Long tournamentId) {
+        Tournament tournament = getTournamentById(tournamentId);
+        return tournament.getRegistrations();
     }
 }

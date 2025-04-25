@@ -3,7 +3,11 @@ package com.fiba.api.service;
 import com.fiba.api.model.Registration;
 import com.fiba.api.model.Tournament;
 import com.fiba.api.model.User;
+import com.fiba.api.model.Team;
+import com.fiba.api.model.TournamentTeam;
+import com.fiba.api.model.TeamStatus;
 import com.fiba.api.repository.RegistrationRepository;
+import com.fiba.api.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +21,37 @@ public class RegistrationService {
     private final RegistrationRepository registrationRepository;
     private final TournamentService tournamentService;
     private final UserService userService;
+    private final TeamService teamService;
+    private final TeamRepository teamRepository;
+
+    @Transactional
+    public Registration createRegistration(Long tournamentId, String teamName, Long captainId, List<Long> playerIds) {
+        Tournament tournament = tournamentService.getTournamentById(tournamentId);
+        User captain = userService.getUserById(captainId);
+        List<User> players = userService.getUsersByIds(playerIds);
+
+        // Создаем команду
+        Team team = new Team();
+        team.setName(teamName);
+        team = teamRepository.save(team);
+
+        // Создаем регистрацию
+        Registration registration = new Registration();
+        registration.setTeamName(teamName);
+        registration.setTournament(tournament);
+        registration.setCaptain(captain);
+        registration.setPlayers(players);
+        registration.setStatus("pending");
+
+        // Связываем команду с турниром через TournamentTeam
+        TournamentTeam tournamentTeam = new TournamentTeam();
+        tournamentTeam.setTeam(team);
+        tournamentTeam.setTournament(tournament);
+        tournamentTeam.setStatus(TeamStatus.PENDING);
+        tournament.getTournamentTeams().add(tournamentTeam);
+
+        return registrationRepository.save(registration);
+    }
 
     @Transactional(readOnly = true)
     public List<Registration> getAllRegistrations() {
@@ -49,28 +84,6 @@ public class RegistrationService {
     public List<Registration> getRegistrationsByTournamentAndStatus(Long tournamentId, String status) {
         Tournament tournament = tournamentService.getTournamentById(tournamentId);
         return registrationRepository.findByTournamentAndStatus(tournament, status);
-    }
-
-    @Transactional
-    public Registration createRegistration(Registration registration) {
-        // Проверка на уникальность имени команды в рамках турнира
-        Tournament tournament = tournamentService.getTournamentById(registration.getTournament().getId());
-        String teamName = registration.getTeamName();
-        
-        registrationRepository.findByTournamentAndTeamName(tournament, teamName)
-                .ifPresent(existingReg -> {
-                    throw new RuntimeException("Команда с названием '" + teamName + "' уже зарегистрирована в этом турнире");
-                });
-        
-        // Установка статуса "pending" для новой регистрации
-        registration.setStatus("pending");
-        
-        // Добавляем капитана в список игроков, если его там еще нет
-        if (!registration.getPlayers().contains(registration.getCaptain())) {
-            registration.getPlayers().add(registration.getCaptain());
-        }
-        
-        return registrationRepository.save(registration);
     }
 
     @Transactional
