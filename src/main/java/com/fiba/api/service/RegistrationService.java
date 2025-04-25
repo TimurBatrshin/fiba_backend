@@ -1,11 +1,6 @@
 package com.fiba.api.service;
 
-import com.fiba.api.model.Registration;
-import com.fiba.api.model.Tournament;
-import com.fiba.api.model.User;
-import com.fiba.api.model.Team;
-import com.fiba.api.model.TournamentTeam;
-import com.fiba.api.model.TeamStatus;
+import com.fiba.api.model.*;
 import com.fiba.api.repository.RegistrationRepository;
 import com.fiba.api.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
