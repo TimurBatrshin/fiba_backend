@@ -86,6 +86,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Разрешаем доступ к файлам без авторизации
                 .requestMatchers("/api/files/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 // Разрешаем доступ только к статическим ресурсам и публичным API
                 .requestMatchers("/static/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
@@ -116,6 +117,7 @@ public class SecurityConfig {
                         !path.startsWith("/api/auth/") &&
                         !path.startsWith("/api/public/") &&
                         !path.startsWith("/api/files/") &&
+                        !path.startsWith("/uploads/") &&
                         !request.getMethod().equals("OPTIONS")) {
                         response.sendError(401, authException.getMessage());
                     }

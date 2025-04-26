@@ -1,279 +1,341 @@
-# Руководство по интеграции с API загрузки фотографий
+# Руководство по интеграции фронтенда для работы с аватарками
 
-## Обновления в API для загрузки фотографий
+## Компоненты
 
-В API были внесены изменения для улучшения работы с загрузкой фотографий профиля. Эти изменения включают:
+### 1. Компонент отображения аватарки (ProfileAvatar)
 
-1. Улучшение обработки ошибок и детальное логирование на сервере
-2. Добавление нового эндпоинта для загрузки по ID профиля
-3. Автоматическое создание директорий для хранения файлов
-4. Корректная обработка Content-Type multipart/form-data
-
-## Эндпоинты API для работы с профилями и фотографиями
-
-### 1. Загрузка фотографии профиля (для текущего пользователя)
-
-```
-POST /api/profile/photo
-Content-Type: multipart/form-data
-```
-
-Параметры запроса:
-- `photo` (обязательный) - файл изображения
-- `tournaments_played` (опциональный) - количество сыгранных турниров
-- `total_points` (опциональный) - общее количество очков
-- `rating` (опциональный) - рейтинг
-
-Пример запроса:
-```javascript
-const formData = new FormData();
-formData.append('photo', fileInput.files[0]);
-
-fetch('/api/profile/photo', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  },
-  body: formData
-})
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Ошибка:', error));
-```
-
-### 2. Загрузка фотографии профиля по ID
-
-```
-POST /api/profile/{id}/photo
-Content-Type: multipart/form-data
-```
-
-Параметры запроса:
-- `photo` (обязательный) - файл изображения
-
-Пример запроса:
-```javascript
-const profileId = 6; // ID профиля
-const formData = new FormData();
-formData.append('photo', fileInput.files[0]);
-
-fetch(`/api/profile/${profileId}/photo`, {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  },
-  body: formData
-})
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Ошибка:', error));
-```
-
-### 3. Получение информации о профиле по ID
-
-```
-GET /api/profile/{id}
-```
-
-Пример запроса:
-```javascript
-const profileId = 6; // ID профиля
-
-fetch(`/api/profile/${profileId}`, {
-  method: 'GET',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-})
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Ошибка:', error));
-```
-
-## Рекомендации по реализации на фронтенде
-
-### 1. Использование axios
-
-```javascript
+```typescript
+// components/Profile/ProfileAvatar.tsx
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Создайте функцию для загрузки фото
-async function uploadProfilePhoto(profileId, photoFile) {
-  try {
-    const formData = new FormData();
-    formData.append('photo', photoFile);
-    
-    const response = await axios.post(`/api/profile/${profileId}/photo`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Ошибка при загрузке фото профиля:', error);
-    // Проверяем наличие деталей ошибки от сервера
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.error || 'Ошибка при загрузке фото');
-    }
-    throw error;
-  }
+interface ProfileAvatarProps {
+  userId: number;
+  className?: string;
 }
-```
 
-### 2. Пример компонента React для загрузки фото
+const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ userId, className }) => {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-```jsx
-import React, { useState } from 'react';
-import axios from 'axios';
-
-function ProfilePhotoUploader({ profileId, onSuccess }) {
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  const handleFileChange = (e) => {
-    if (e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      setError(null);
-    }
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!file) {
-      setError('Пожалуйста, выберите файл');
-      return;
-    }
-    
-    // Проверка файла перед отправкой
-    const errorMessage = validateImage(file);
-    if (errorMessage) {
-      setError(errorMessage);
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const formData = new FormData();
-      formData.append('photo', file);
-      
-      const response = await axios.post(`/api/profile/${profileId}/photo`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      setLoading(false);
-      if (onSuccess) {
-        onSuccess(response.data);
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      try {
+        const response = await axios.get(`/api/files/user/${userId}/avatar`);
+        setAvatarUrl(response.data.avatar_url);
+      } catch (err) {
+        setError('Не удалось загрузить аватарку');
+        console.error('Ошибка при загрузке аватарки:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      setLoading(false);
-      let errorMessage = 'Ошибка при загрузке фото';
-      
-      if (error.response && error.response.data && error.response.data.error) {
-        errorMessage = error.response.data.error;
-      }
-      
-      setError(errorMessage);
-    }
-  };
-  
-  // Функция валидации изображения
-  const validateImage = (file) => {
-    // Проверка типа файла
-    if (!file.type.match('image.*')) {
-      return 'Пожалуйста, выберите изображение';
-    }
-    
-    // Проверка размера файла (не более 5 МБ)
-    if (file.size > 5 * 1024 * 1024) {
-      return 'Размер файла не должен превышать 5 МБ';
-    }
-    
-    return null; // Нет ошибок
-  };
-  
+    };
+
+    fetchAvatar();
+  }, [userId]);
+
+  if (loading) {
+    return <div className="avatar-placeholder">Загрузка...</div>;
+  }
+
+  if (error) {
+    return <div className="avatar-placeholder">Ошибка загрузки</div>;
+  }
+
   return (
-    <div className="photo-uploader">
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="photo">Выберите фото профиля:</label>
-          <input 
-            type="file" 
-            id="photo" 
-            accept="image/*" 
-            onChange={handleFileChange} 
-            disabled={loading}
-          />
+    <div className={`profile-avatar ${className || ''}`}>
+      {avatarUrl ? (
+        <img 
+          src={avatarUrl} 
+          alt="Аватар пользователя" 
+          className="avatar-image"
+          onError={() => setAvatarUrl(null)}
+        />
+      ) : (
+        <div className="avatar-placeholder">
+          <span>Нет фото</span>
         </div>
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        <button type="submit" disabled={!file || loading}>
-          {loading ? 'Загрузка...' : 'Загрузить фото'}
-        </button>
-      </form>
+      )}
     </div>
   );
+};
+
+export default ProfileAvatar;
+```
+
+### 2. Компонент загрузки аватарки (AvatarUploader)
+
+```typescript
+// components/Profile/AvatarUploader.tsx
+import React, { useState, useRef } from 'react';
+import axios from 'axios';
+
+interface AvatarUploaderProps {
+  userId: number;
+  onUploadSuccess?: (avatarUrl: string) => void;
+  onUploadError?: (error: string) => void;
 }
 
-export default ProfilePhotoUploader;
+const AvatarUploader: React.FC<AvatarUploaderProps> = ({
+  userId,
+  onUploadSuccess,
+  onUploadError
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      setError('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    // Проверка размера файла (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Размер файла не должен превышать 5MB');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(
+        `/api/files/user/${userId}/avatar`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (onUploadSuccess) {
+        onUploadSuccess(response.data.avatar_url);
+      }
+    } catch (err) {
+      const errorMessage = 'Ошибка при загрузке аватарки';
+      setError(errorMessage);
+      if (onUploadError) {
+        onUploadError(errorMessage);
+      }
+      console.error('Ошибка при загрузке аватарки:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="avatar-uploader">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        style={{ display: 'none' }}
+      />
+      
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="upload-button"
+      >
+        {uploading ? 'Загрузка...' : 'Изменить фото'}
+      </button>
+
+      {error && <div className="error-message">{error}</div>}
+    </div>
+  );
+};
+
+export default AvatarUploader;
 ```
+
+### 3. Использование в профиле
+
+```typescript
+// pages/Profile.tsx
+import React from 'react';
+import ProfileAvatar from '../components/Profile/ProfileAvatar';
+import AvatarUploader from '../components/Profile/AvatarUploader';
+
+const Profile: React.FC = () => {
+  const userId = 123; // ID текущего пользователя
+
+  const handleUploadSuccess = (avatarUrl: string) => {
+    // Обновление UI после успешной загрузки
+    console.log('Аватарка успешно загружена:', avatarUrl);
+  };
+
+  const handleUploadError = (error: string) => {
+    // Обработка ошибки
+    console.error('Ошибка при загрузке аватарки:', error);
+  };
+
+  return (
+    <div className="profile-page">
+      <div className="profile-header">
+        <ProfileAvatar userId={userId} className="large" />
+        <AvatarUploader
+          userId={userId}
+          onUploadSuccess={handleUploadSuccess}
+          onUploadError={handleUploadError}
+        />
+      </div>
+      {/* Остальной контент профиля */}
+    </div>
+  );
+};
+
+export default Profile;
+```
+
+## Стили
+
+```css
+/* styles/Profile.css */
+.profile-avatar {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f0f0f0;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e0e0;
+  color: #666;
+  font-size: 14px;
+}
+
+.avatar-uploader {
+  margin-top: 10px;
+}
+
+.upload-button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upload-button:hover {
+  background-color: #0056b3;
+}
+
+.upload-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc3545;
+  margin-top: 8px;
+  font-size: 14px;
+}
+```
+
+## Установка и использование
+
+1. Установите необходимые зависимости:
+```bash
+npm install axios
+```
+
+2. Импортируйте стили в вашем приложении:
+```typescript
+import './styles/Profile.css';
+```
+
+3. Используйте компоненты в нужных местах вашего приложения.
+
+## API Endpoints
+
+### Получение аватарки пользователя
+```
+GET /api/files/user/{userId}/avatar
+```
+Ответ:
+```json
+{
+    "avatar_url": "/uploads/avatars/12345678-1234-1234-1234-123456789abc.jpg"
+}
+```
+
+### Загрузка аватарки пользователя
+```
+POST /api/files/user/{userId}/avatar
+Content-Type: multipart/form-data
+```
+Параметры:
+- `file`: файл изображения
+
+Ответ:
+```json
+{
+    "avatar_url": "/uploads/avatars/12345678-1234-1234-1234-123456789abc.jpg",
+    "message": "Аватарка успешно загружена"
+}
+```
+
+## Ограничения
+
+1. Поддерживаемые форматы изображений:
+   - JPEG
+   - PNG
+   - GIF
+   - BMP
+   - WEBP
+
+2. Максимальный размер файла: 5MB
+
+3. Рекомендуемые размеры изображения:
+   - Минимум: 200x200 пикселей
+   - Оптимально: 400x400 пикселей
+   - Максимум: 1024x1024 пикселей
 
 ## Обработка ошибок
 
-Сервер теперь возвращает более подробные сообщения об ошибках с кодами HTTP-статусов и детальным описанием проблемы:
+1. Ошибки загрузки файла:
+   - Неверный формат файла
+   - Превышение размера файла
+   - Ошибки сети
+   - Ошибки сервера
 
-```json
-{
-  "error": "Описание ошибки",
-  "status": 500
-}
-```
+2. Ошибки отображения:
+   - Файл не найден
+   - Ошибка загрузки изображения
+   - Ошибка сети
 
-Основные коды ошибок:
-- 400 - Некорректный запрос (например, отсутствует обязательный параметр)
-- 401 - Пользователь не авторизован 
-- 403 - Недостаточно прав для выполнения операции
-- 404 - Ресурс не найден (профиль не существует)
-- 500 - Внутренняя ошибка сервера
+## Рекомендации по использованию
 
-## Отображение загруженных изображений
-
-Загруженные изображения доступны по URL, возвращаемому в ответе:
-
-```json
-{
-  "id": 6,
-  "photo_url": "/uploads/profiles/12345678-1234-1234-1234-123456789abc.jpg",
-  "message": "Фотография профиля успешно загружена"
-}
-```
-
-Для отображения изображения используйте относительный путь:
-
-```jsx
-<img src={profileData.photo_url} alt="Фото профиля" className="profile-image" />
-```
-
-## Возможные проблемы и их решение
-
-### 1. При загрузке фото профиля получаю ошибку 500 (Internal Server Error)
-
-Убедитесь, что:
-- В запросе используется правильное имя параметра: `photo` (не `file` или что-то другое)
-- Content-Type запроса установлен как `multipart/form-data`
-- Файл имеет допустимый формат и размер (не более 10 МБ)
-- Сервер имеет права на запись в директорию `uploads/profiles`
-
-### 2. Фото не отображается после успешной загрузки
-
-Проверьте:
-- URL изображения возвращается корректно в ответе
-- Сервер настроен на раздачу статических файлов из директории `uploads`
-- В консоли браузера нет ошибок загрузки изображения 
+1. Всегда проверяйте тип и размер файла перед загрузкой
+2. Используйте плейсхолдеры во время загрузки
+3. Обрабатывайте все возможные ошибки
+4. Предоставляйте пользователю обратную связь о процессе загрузки
+5. Используйте кэширование для оптимизации производительности
+6. Следите за консистентностью данных между компонентами 

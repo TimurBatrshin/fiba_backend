@@ -33,9 +33,14 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         try {
-            // Добавляем обработчик только для статических ресурсов
+            // Добавляем обработчик для статических ресурсов
             registry.addResourceHandler("/static/**")
                     .addResourceLocations("classpath:/static/")
+                    .setCachePeriod(3600);
+                    
+            // Добавляем обработчик для загруженных файлов
+            registry.addResourceHandler("/uploads/**")
+                    .addResourceLocations("file:" + uploadDir + "/")
                     .setCachePeriod(3600);
                     
             log.info("Static resource handlers configured successfully");
