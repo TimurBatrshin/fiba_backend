@@ -38,7 +38,8 @@ public class WebConfig implements WebMvcConfigurer {
             
             registry.addResourceHandler("/uploads/**")
                     .addResourceLocations(resourceLocation)
-                    .setCachePeriod(3600); // кэширование на 1 час
+                    .setCachePeriod(3600)
+                    .resourceChain(true); // Включаем цепочку ресурсов
                     
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {
