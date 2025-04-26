@@ -36,8 +36,7 @@ public class WebConfig implements WebMvcConfigurer {
             // Добавляем обработчик только для статических ресурсов
             registry.addResourceHandler("/static/**")
                     .addResourceLocations("classpath:/static/")
-                    .setCachePeriod(3600)
-                    .setOrder(1);
+                    .setCachePeriod(3600);
                     
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {
