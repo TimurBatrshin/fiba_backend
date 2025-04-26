@@ -99,6 +99,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/tournaments/**").permitAll()
                 .requestMatchers("/api/ads/public/**").permitAll()
                 .requestMatchers("/api/users/search").permitAll()
+                .requestMatchers("/api/users/**").permitAll()
+                .requestMatchers("/api/profile/**").permitAll()
                 .requestMatchers("/api/players/search").permitAll()
                 .requestMatchers("/api/players/rankings").permitAll()
                 .requestMatchers("/api/players/top").permitAll()

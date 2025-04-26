@@ -128,7 +128,6 @@ public class UserController {
     }
 
     @GetMapping("/api/users/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isCurrentUser(#id, principal)")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
         return ResponseEntity.ok(convertToMap(user));
