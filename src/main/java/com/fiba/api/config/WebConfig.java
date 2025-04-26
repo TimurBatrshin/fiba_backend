@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.PathResourceResolver;
+import java.io.IOException;
 
 /**
  * Конфигурация веб-приложения, включая CORS и сопоставление путей
@@ -39,7 +42,18 @@ public class WebConfig implements WebMvcConfigurer {
             registry.addResourceHandler("/uploads/**")
                     .addResourceLocations(resourceLocation)
                     .setCachePeriod(3600)
-                    .resourceChain(true); // Включаем цепочку ресурсов
+                    .resourceChain(true)
+                    .addResolver(new PathResourceResolver() {
+                        @Override
+                        protected Resource getResource(String resourcePath, Resource location) throws IOException {
+                            Resource resource = super.getResource(resourcePath, location);
+                            if (resource == null || !resource.exists()) {
+                                log.debug("Resource not found: {}", resourcePath);
+                                return null;
+                            }
+                            return resource;
+                        }
+                    });
                     
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {

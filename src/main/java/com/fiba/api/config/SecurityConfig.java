@@ -90,17 +90,12 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.sendError(401, authException.getMessage());
-                })
-            )
             .authorizeHttpRequests(auth -> auth
-                // Разрешаем OPTIONS запросы для CORS preflight
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                // Разрешаем доступ к статическим ресурсам
+                // Сначала разрешаем доступ к статическим файлам
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/static/**").permitAll()
+                // Затем разрешаем OPTIONS запросы для CORS preflight
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // Остальные публичные эндпоинты
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
@@ -123,6 +118,14 @@ public class SecurityConfig {
                 .requestMatchers("/api-docs/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint((request, response, authException) -> {
+                    // Не отправляем 401 для запросов к статическим файлам
+                    if (!request.getRequestURI().startsWith("/uploads/")) {
+                        response.sendError(401, authException.getMessage());
+                    }
+                })
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
