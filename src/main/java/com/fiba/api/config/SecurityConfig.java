@@ -84,11 +84,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Разрешаем доступ к статическим файлам
+                // Разрешаем доступ к статическим файлам и публичным ресурсам
                 .requestMatchers("/uploads/**", "/static/**").permitAll()
-                // Разрешаем OPTIONS запросы для CORS preflight
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // Публичные API эндпоинты
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/status").permitAll()
@@ -104,13 +101,18 @@ public class SecurityConfig {
                 .requestMatchers("/api/proxy/**").permitAll()
                 // Swagger UI и OpenAPI
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
+                // Разрешаем OPTIONS запросы для CORS preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint((request, response, authException) -> {
                     String path = request.getRequestURI();
                     // Не отправляем 401 для запросов к статическим файлам и OPTIONS запросов
-                    if (!path.startsWith("/uploads/") && !path.startsWith("/static/") && 
+                    if (!path.startsWith("/uploads/") && 
+                        !path.startsWith("/static/") && 
+                        !path.startsWith("/api/auth/") &&
+                        !path.startsWith("/api/public/") &&
                         !request.getMethod().equals("OPTIONS")) {
                         response.sendError(401, authException.getMessage());
                     }
