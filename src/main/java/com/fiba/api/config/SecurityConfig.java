@@ -119,7 +119,8 @@ public class SecurityConfig {
                 })
             )
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .securityMatcher("/api/**"); // Применяем JWT фильтр только к API запросам
         
         return http.build();
     }

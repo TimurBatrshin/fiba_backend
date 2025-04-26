@@ -63,6 +63,11 @@ public class WebConfig implements WebMvcConfigurer {
                         }
                     });
                     
+            // Добавляем обработчик для статических ресурсов
+            registry.addResourceHandler("/static/**")
+                    .addResourceLocations("classpath:/static/")
+                    .setCachePeriod(3600);
+                    
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {
             log.error("Error configuring static resource handler", e);
