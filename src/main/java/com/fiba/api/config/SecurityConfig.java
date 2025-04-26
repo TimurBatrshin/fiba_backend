@@ -17,11 +17,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 import java.util.List;
@@ -79,24 +78,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring()
-                .requestMatchers("/uploads/**", "/static/**");
-    }
-
-    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Сначала разрешаем доступ к статическим файлам
-                .requestMatchers("/uploads/**").permitAll()
-                .requestMatchers("/static/**").permitAll()
-                // Затем разрешаем OPTIONS запросы для CORS preflight
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                // Остальные публичные эндпоинты
+                // Разрешаем доступ к статическим файлам
+                .requestMatchers("/uploads/**", "/static/**").permitAll()
+                // Разрешаем OPTIONS запросы для CORS preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Публичные API эндпоинты
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/status").permitAll()
@@ -110,19 +102,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/players/rankings").permitAll()
                 .requestMatchers("/api/players/top").permitAll()
                 .requestMatchers("/api/proxy/**").permitAll()
-                // Actuator endpoints
-                .requestMatchers("/actuator/**").permitAll()
                 // Swagger UI и OpenAPI
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
-                .requestMatchers("/api-docs/**").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint((request, response, authException) -> {
-                    // Не отправляем 401 для запросов к статическим файлам
-                    if (!request.getRequestURI().startsWith("/uploads/")) {
+                    String path = request.getRequestURI();
+                    // Не отправляем 401 для запросов к статическим файлам и OPTIONS запросов
+                    if (!path.startsWith("/uploads/") && !path.startsWith("/static/") && 
+                        !request.getMethod().equals("OPTIONS")) {
                         response.sendError(401, authException.getMessage());
                     }
                 })
