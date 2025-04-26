@@ -91,9 +91,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Разрешаем OPTIONS запросы для CORS preflight
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                // Разрешаем доступ к статическим ресурсам
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/static/**").permitAll()
+                // Остальные публичные эндпоинты
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/status").permitAll()
                 .requestMatchers("/api/tournaments").permitAll()
                 .requestMatchers("/api/tournaments/**").permitAll()
