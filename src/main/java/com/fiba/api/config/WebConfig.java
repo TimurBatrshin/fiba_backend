@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -32,8 +33,15 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         try {
+            // Определяем абсолютный путь к директории загрузок
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-            String resourceLocation = "file:" + uploadPath.toString() + "/";
+            
+            // Создаем URL-совместимый путь для Spring Resource Location
+            String resourceLocation = uploadPath.toString().replace('\\', '/');
+            if (!resourceLocation.endsWith("/")) {
+                resourceLocation += "/";
+            }
+            resourceLocation = "file:" + resourceLocation;
             
             log.info("Configuring static resource handler:");
             log.info("Upload directory path: {}", uploadPath);
@@ -57,7 +65,7 @@ public class WebConfig implements WebMvcConfigurer {
                     
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {
-            log.error("Error configuring static resource handlers", e);
+            log.error("Error configuring static resource handler", e);
             throw e;
         }
     }
