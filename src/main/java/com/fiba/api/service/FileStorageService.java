@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 
 @Service
 @Slf4j
@@ -253,5 +254,25 @@ public class FileStorageService {
      */
     public String storeAvatar(MultipartFile file) throws IOException {
         return storeFile(file, "avatars");
+    }
+
+    /**
+     * Загружает файл как ресурс
+     *
+     * @param filePath путь к файлу
+     * @return Resource объект файла
+     * @throws IOException если произошла ошибка при загрузке файла
+     */
+    public Resource loadFileAsResource(Path filePath) throws IOException {
+        try {
+            Resource resource = new org.springframework.core.io.FileSystemResource(filePath.toFile());
+            if (resource.exists()) {
+                return resource;
+            } else {
+                throw new IOException("Файл не найден: " + filePath);
+            }
+        } catch (Exception e) {
+            throw new IOException("Ошибка при загрузке файла: " + filePath, e);
+        }
     }
 }

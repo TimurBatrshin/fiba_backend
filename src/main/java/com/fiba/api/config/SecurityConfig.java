@@ -84,8 +84,10 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Разрешаем доступ к статическим файлам и публичным ресурсам
-                .requestMatchers("/uploads/**", "/static/**").permitAll()
+                // Разрешаем доступ к файлам без авторизации
+                .requestMatchers("/api/files/**").permitAll()
+                // Разрешаем доступ только к статическим ресурсам и публичным API
+                .requestMatchers("/static/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/status").permitAll()
@@ -103,24 +105,24 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                 // Разрешаем OPTIONS запросы для CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Все остальные запросы требуют аутентификации
                 .anyRequest().authenticated()
             )
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint((request, response, authException) -> {
+            .exceptionHandling(exception -> 
+                exception.authenticationEntryPoint((request, response, authException) -> {
                     String path = request.getRequestURI();
                     // Не отправляем 401 для запросов к статическим файлам и OPTIONS запросов
-                    if (!path.startsWith("/uploads/") && 
-                        !path.startsWith("/static/") && 
+                    if (!path.startsWith("/static/") && 
                         !path.startsWith("/api/auth/") &&
                         !path.startsWith("/api/public/") &&
+                        !path.startsWith("/api/files/") &&
                         !request.getMethod().equals("OPTIONS")) {
                         response.sendError(401, authException.getMessage());
                     }
                 })
             )
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .securityMatcher("/api/**"); // Применяем JWT фильтр только к API запросам
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }

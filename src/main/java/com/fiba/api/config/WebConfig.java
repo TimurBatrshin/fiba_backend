@@ -33,40 +33,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         try {
-            // Определяем абсолютный путь к директории загрузок
-            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-            
-            // Создаем URL-совместимый путь для Spring Resource Location
-            String resourceLocation = uploadPath.toString().replace('\\', '/');
-            if (!resourceLocation.endsWith("/")) {
-                resourceLocation += "/";
-            }
-            resourceLocation = "file:" + resourceLocation;
-            
-            log.info("Configuring static resource handler:");
-            log.info("Upload directory path: {}", uploadPath);
-            log.info("Resource location: {}", resourceLocation);
-            
-            registry.addResourceHandler("/uploads/**")
-                    .addResourceLocations(resourceLocation)
-                    .setCachePeriod(3600)
-                    .resourceChain(true)
-                    .addResolver(new PathResourceResolver() {
-                        @Override
-                        protected Resource getResource(String resourcePath, Resource location) throws IOException {
-                            Resource resource = super.getResource(resourcePath, location);
-                            if (resource == null || !resource.exists()) {
-                                log.debug("Resource not found: {}", resourcePath);
-                                return null;
-                            }
-                            return resource;
-                        }
-                    });
-                    
-            // Добавляем обработчик для статических ресурсов
+            // Добавляем обработчик только для статических ресурсов
             registry.addResourceHandler("/static/**")
                     .addResourceLocations("classpath:/static/")
-                    .setCachePeriod(3600);
+                    .setCachePeriod(3600)
+                    .setOrder(1);
                     
             log.info("Static resource handlers configured successfully");
         } catch (Exception e) {
