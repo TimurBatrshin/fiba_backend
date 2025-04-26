@@ -233,10 +233,9 @@ public class TournamentController {
     }
 
     /**
-     * Создание нового турнира (только для администраторов)
+     * Создание нового турнира
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createTournament(
             @RequestParam(value = "title") String title,
             @RequestParam(value = "date") String dateStr,

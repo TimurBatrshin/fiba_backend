@@ -94,6 +94,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/status").permitAll()
                 .requestMatchers("/api/tournaments").permitAll()
                 .requestMatchers("/api/tournaments/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/tournaments").permitAll()
                 .requestMatchers("/api/ads/public/**").permitAll()
                 .requestMatchers("/api/users/search").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
