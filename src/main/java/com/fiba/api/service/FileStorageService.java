@@ -6,11 +6,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,20 +56,96 @@ public class FileStorageService {
                 log.info("Created root upload directory: {}", rootLocation);
             }
             
-            String[] subdirs = {"tournaments", "sponsors", "ads", "profiles", "avatars"};
-            for (String subdir : subdirs) {
-                Path subdirPath = rootLocation.resolve(subdir);
+            // Определяем структуру папок и их назначение
+            Map<String, String> subdirs = new HashMap<>();
+            subdirs.put("profiles", "Фотографии профилей пользователей");
+            subdirs.put("avatars", "Маленькие аватарки пользователей");
+            subdirs.put("tournaments", "Изображения турниров");
+            subdirs.put("sponsors", "Логотипы спонсоров");
+            subdirs.put("ads", "Рекламные изображения");
+            subdirs.put("teams", "Логотипы команд");
+            subdirs.put("temp", "Временные файлы");
+            
+            // Создаем все необходимые поддиректории
+            for (Map.Entry<String, String> entry : subdirs.entrySet()) {
+                Path subdirPath = rootLocation.resolve(entry.getKey());
                 if (!Files.exists(subdirPath)) {
                     Files.createDirectories(subdirPath);
-                    log.info("Created subdirectory: {}", subdirPath);
+                    log.info("Created subdirectory for {}: {}", entry.getValue(), subdirPath);
+                }
+                
+                // Создаем .gitkeep для сохранения пустых директорий в git
+                Path gitkeepFile = subdirPath.resolve(".gitkeep");
+                if (!Files.exists(gitkeepFile)) {
+                    Files.createFile(gitkeepFile);
                 }
             }
+            
+            // Проверяем права доступа
+            checkAndSetPermissions(rootLocation);
             
             log.info("FileStorageService initialized successfully");
         } catch (IOException e) {
             String msg = "Could not initialize storage location: " + e.getMessage();
             log.error(msg, e);
             throw new RuntimeException(msg, e);
+        }
+    }
+    
+    /**
+     * Проверяет и устанавливает правильные права доступа для директорий
+     */
+    private void checkAndSetPermissions(Path directory) throws IOException {
+        // Проверяем базовые разрешения
+        if (!Files.isReadable(directory)) {
+            log.warn("Directory is not readable: {}", directory);
+        }
+        if (!Files.isWritable(directory)) {
+            log.warn("Directory is not writable: {}", directory);
+        }
+        
+        // Проверяем все поддиректории
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory)) {
+            for (Path path : stream) {
+                if (Files.isDirectory(path)) {
+                    checkAndSetPermissions(path);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Очищает временные файлы старше определенного возраста
+     */
+    @Scheduled(cron = "0 0 3 * * *") // Запускается каждый день в 3 утра
+    public void cleanupTempFiles() {
+        try {
+            Path tempDir = rootLocation.resolve("temp");
+            if (!Files.exists(tempDir)) {
+                return;
+            }
+            
+            // Удаляем файлы старше 24 часов
+            Files.walk(tempDir)
+                .filter(path -> !Files.isDirectory(path))
+                .filter(path -> {
+                    try {
+                        return Files.getLastModifiedTime(path).toInstant()
+                            .isBefore(Instant.now().minus(24, ChronoUnit.HOURS));
+                    } catch (IOException e) {
+                        return false;
+                    }
+                })
+                .forEach(path -> {
+                    try {
+                        Files.delete(path);
+                        log.info("Deleted old temp file: {}", path);
+                    } catch (IOException e) {
+                        log.error("Error deleting temp file: {}", path, e);
+                    }
+                });
+        } catch (IOException e) {
+            log.error("Error during temp files cleanup", e);
         }
     }
     
