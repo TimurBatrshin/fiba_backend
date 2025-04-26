@@ -19,10 +19,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
-
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api")
@@ -162,6 +165,48 @@ public class ProfileController {
             log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Внутренняя ошибка сервера: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/profile/{userId}/photo")
+    public ResponseEntity<?> getUserPhoto(@PathVariable Long userId) {
+        try {
+            User user = userService.getUserById(userId);
+            if (user == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Profile profile = profileService.getProfileByUserId(userId);
+            if (profile == null || profile.getPhotoUrl() == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            return ResponseEntity.ok()
+                .body(Map.of("photo_url", profile.getPhotoUrl()));
+                
+        } catch (Exception e) {
+            log.error("Ошибка при получении фото пользователя с ID: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ошибка при получении фото: " + e.getMessage()));
+        }
+    }
+    
+    private String determineContentType(String filename) {
+        String extension = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+        switch (extension) {
+            case "png":
+                return "image/png";
+            case "jpg":
+            case "jpeg":
+                return "image/jpeg";
+            case "gif":
+                return "image/gif";
+            case "bmp":
+                return "image/bmp";
+            case "webp":
+                return "image/webp";
+            default:
+                return "application/octet-stream";
         }
     }
 } 
