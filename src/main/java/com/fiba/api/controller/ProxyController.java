@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import lombok.extern.slf4j.Slf4j;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -24,6 +25,7 @@ import java.util.Enumeration;
 /**
  * Контроллер для проксирования запросов к внешним ресурсам
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/proxy")
 public class ProxyController {
@@ -54,12 +56,16 @@ public class ProxyController {
         // Получаем URI запроса
         String requestURI = request.getRequestURI();
         
+        log.info("Received proxy request for URI: {}", requestURI);
+        
         // URI будет вида /api/proxy/static-bro-js/path/to/resource
         // Нам нужно извлечь часть после /api/proxy/static-bro-js/
         String fullPath = requestURI.substring("/api/proxy/static-bro-js/".length());
         
         // Формируем URL для запроса к внешнему серверу
         String url = "https://static.bro-js.ru/" + fullPath;
+        
+        log.info("Proxying request to URL: {}", url);
         
         // Проверяем, является ли файл JavaScript-файлом
         boolean isJsFile = fullPath.endsWith(".js");
@@ -75,12 +81,14 @@ public class ProxyController {
             byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes());
             String authHeader = "Basic " + new String(encodedAuth);
             headers.add("Authorization", authHeader);
+            log.debug("Added Basic Authentication header");
         }
         
         // Создаем HTTP-сущность с заголовками
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
         try {
+            log.info("Sending request to external server");
             // Выполняем запрос к внешнему серверу и возвращаем его ответ
             ResponseEntity<String> response = restTemplate.exchange(
                 new URI(url),
@@ -88,6 +96,8 @@ public class ProxyController {
                 entity,
                 String.class
             );
+            
+            log.info("Received response with status: {}", response.getStatusCode());
             
             // Создаем новые заголовки ответа
             HttpHeaders responseHeaders = new HttpHeaders();
@@ -106,6 +116,7 @@ public class ProxyController {
             responseHeaders.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
             responseHeaders.add("Access-Control-Allow-Credentials", "true");
             
+            log.info("Returning proxied response with CORS headers");
             // Возвращаем ответ с новыми заголовками
             return new ResponseEntity<>(
                 response.getBody(),
@@ -113,6 +124,7 @@ public class ProxyController {
                 response.getStatusCode()
             );
         } catch (Exception e) {
+            log.error("Error proxying request to {}: {}", url, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body("Error proxying request to " + url + ": " + e.getMessage());
         }
