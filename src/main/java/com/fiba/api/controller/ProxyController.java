@@ -129,4 +129,89 @@ public class ProxyController {
                 .body("Error proxying request to " + url + ": " + e.getMessage());
         }
     }
+
+    /**
+     * Проксирует запросы к static.bro-js.ru через путь /static
+     */
+    @GetMapping("/static/fiba3x3/**")
+    public ResponseEntity<String> proxyStaticContent() throws URISyntaxException {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String requestURI = request.getRequestURI();
+        
+        log.info("Received proxy request for URI: {}", requestURI);
+        
+        // URI будет вида /static/fiba3x3/version/file
+        // Извлекаем путь после /static/
+        String fullPath = requestURI.substring("/static/".length());
+        
+        // Формируем URL для запроса к внешнему серверу
+        String url = "https://static.bro-js.ru/" + fullPath;
+        
+        log.info("Proxying request to URL: {}", url);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", "*/*");
+        headers.add("User-Agent", "Spring RestTemplate");
+        
+        if (authEnabled && username != null && !username.isEmpty()) {
+            String auth = username + ":" + password;
+            byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes());
+            String authHeader = "Basic " + new String(encodedAuth);
+            headers.add("Authorization", authHeader);
+            log.debug("Added Basic Authentication header");
+        }
+        
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        try {
+            log.info("Sending request to external server");
+            ResponseEntity<String> response = restTemplate.exchange(
+                new URI(url),
+                HttpMethod.GET,
+                entity,
+                String.class
+            );
+            
+            log.info("Received response with status: {}", response.getStatusCode());
+            
+            HttpHeaders responseHeaders = new HttpHeaders();
+            
+            if (response.getHeaders().getContentType() != null) {
+                responseHeaders.setContentType(response.getHeaders().getContentType());
+            } else if (fullPath.endsWith(".js")) {
+                responseHeaders.setContentType(MediaType.parseMediaType("application/javascript"));
+            }
+            
+            // Добавляем CORS заголовки
+            responseHeaders.add("Access-Control-Allow-Origin", "*");
+            responseHeaders.add("Access-Control-Allow-Methods", "GET, OPTIONS");
+            responseHeaders.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
+            responseHeaders.add("Cache-Control", "public, max-age=31536000");
+            
+            log.info("Returning proxied response with headers");
+            return new ResponseEntity<>(
+                response.getBody(),
+                responseHeaders,
+                response.getStatusCode()
+            );
+        } catch (Exception e) {
+            log.error("Error proxying request to {}: {}", url, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body("Error proxying request to " + url + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Обработка OPTIONS запросов для CORS
+     */
+    @RequestMapping(value = "/static/**", method = org.springframework.web.bind.annotation.RequestMethod.OPTIONS)
+    public ResponseEntity<?> handleOptions() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "GET, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
+        headers.add("Access-Control-Max-Age", "3600");
+        
+        return new ResponseEntity<>(headers, HttpStatus.OK);
+    }
 } 
